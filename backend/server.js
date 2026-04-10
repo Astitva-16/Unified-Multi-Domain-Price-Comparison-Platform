@@ -4,17 +4,14 @@ const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
 const searchRoutes = require('./routes/search');
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());  // Allows cross-origin requests from frontend
 app.use(express.json());  // Parses JSON bodies
 
-// Supabase client (optional for MVP)
 let supabase = null;
 const hasValidSupabase = 
   process.env.SUPABASE_URL && 
@@ -28,21 +25,17 @@ if (hasValidSupabase) {
   console.log('⚠ Supabase not configured. Using mock data for MVP.');
 }
 
-// Make supabase available to routes
 app.use((req, res, next) => {
   req.supabase = supabase;
   next();
 });
 
-// Routes
 app.use('/api', searchRoutes);
 
-// Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'MOL BHAO Backend API running' });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
   console.log(`📍 Search API: http://localhost:${PORT}/api/search?query=laptop`);
