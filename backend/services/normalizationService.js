@@ -1,4 +1,3 @@
-
 const PRODUCT_SCHEMA = {
   id: '',
   name: '',

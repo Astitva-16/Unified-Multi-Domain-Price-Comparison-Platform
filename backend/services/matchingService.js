@@ -1,4 +1,3 @@
-
 const jaccardSimilarity = (str1, str2) => {
   const set1 = new Set(str1.split(' ').filter(w => w));
   const set2 = new Set(str2.split(' ').filter(w => w));
