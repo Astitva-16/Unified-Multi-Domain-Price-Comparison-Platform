@@ -1,24 +1,30 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Mic, Camera, BarChart3, Bell, Sparkles, Globe, Zap, Shield } from "lucide-react";
+import { Search, Sparkles, Globe, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trustedPlatforms } from "@/data/mockData";
+import { useState } from "react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } }),
 };
 
-const features = [
-  { icon: Globe, title: "Shopping Search", desc: "Compare products across Amazon, Flipkart, and Myntra." },
-  { icon: BarChart3, title: "Real-Time Comparison", desc: "See price, rating, and delivery side by side." },
-  { icon: Bell, title: "Deal Alerts", desc: "Track the best discounts and never miss a price drop." },
-  { icon: Sparkles, title: "Smart Suggestions", desc: "Get product recommendations based on your shopping trends." },
-  { icon: Shield, title: "Trusted Platforms", desc: "Shop with confidence from popular online stores." },
-  { icon: Zap, title: "Fast Insights", desc: "Find the lowest price and top deals instantly." },
-];
-
 const LandingPage = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
   return (
     <div className="min-h-screen">
       {/* Minimal Landing Nav */}
@@ -36,11 +42,8 @@ const LandingPage = () => {
             <Link to="/home" className="hover:text-foreground transition-colors">Dashboard</Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Sign in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm" className="gradient-primary text-primary-foreground border-0">Get Started</Button>
+            <Link to="/home">
+              <Button size="sm" className="gradient-primary text-primary-foreground border-0">Explore</Button>
             </Link>
           </div>
         </div>
@@ -103,18 +106,21 @@ const LandingPage = () => {
 
           <motion.div
             initial="hidden" animate="visible" variants={fadeUp} custom={3}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10"
+            className="max-w-md mx-auto mt-10"
           >
-            <Link to="/signup">
-              <Button size="lg" className="gradient-primary text-primary-foreground border-0 px-8 text-base shadow-glow">
-                Get Started
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search for products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1 px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <Button size="lg" onClick={handleSearch} className="gradient-primary text-primary-foreground border-0 px-6">
+                <Search size={18} />
               </Button>
-            </Link>
-            <Link to="/home">
-              <Button size="lg" variant="outline" className="px-8 text-base">
-                Explore Categories
-              </Button>
-            </Link>
+            </div>
           </motion.div>
 
           {/* Bottom floating cards */}
@@ -150,29 +156,35 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="container mx-auto px-4 py-20">
+      {/* Recommended Products */}
+      <section id="products" className="container mx-auto px-4 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">Powerful Features</h2>
-          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">Everything you need to find the best deals across every domain.</p>
+          <h2 className="text-3xl md:text-4xl font-bold">Recommended Products</h2>
+          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">Discover amazing deals on popular categories.</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
+          {[
+            { name: "Clothing", icon: "👕", desc: "Fashion for every style and occasion" },
+            { name: "Electronics", icon: "📱", desc: "Latest gadgets and tech accessories" },
+            { name: "Home & Kitchen", icon: "🏠", desc: "Essentials for your living space" },
+            { name: "Books", icon: "📚", desc: "Knowledge and entertainment" },
+            { name: "Sports", icon: "⚽", desc: "Gear for your active lifestyle" },
+            { name: "Beauty", icon: "💄", desc: "Skincare, makeup, and wellness" }
+          ].map((product, i) => (
             <motion.div
-              key={f.title}
+              key={product.name}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeUp}
               custom={i}
               whileHover={{ y: -4 }}
-              className="p-6 rounded-2xl bg-card border shadow-sm hover:shadow-lg transition-shadow"
+              className="p-6 rounded-2xl bg-card border shadow-sm hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate(`/search?category=${product.name.toLowerCase()}`)}
             >
-              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
-                <f.icon size={22} className="text-primary-foreground" />
-              </div>
-              <h3 className="font-semibold text-lg">{f.title}</h3>
-              <p className="text-muted-foreground text-sm mt-2">{f.desc}</p>
+              <div className="text-4xl mb-4">{product.icon}</div>
+              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <p className="text-muted-foreground text-sm mt-2">{product.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -192,25 +204,14 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-2xl mx-auto p-12 rounded-3xl gradient-primary text-primary-foreground">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to save money?</h2>
-          <p className="opacity-90 mb-8">Join thousands of smart shoppers comparing prices across every platform.</p>
-          <Link to="/signup">
-            <Button size="lg" variant="secondary" className="px-8 text-base font-semibold">
-              Create Free Account
-            </Button>
-          </Link>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="border-t bg-card">
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold text-lg mb-4 gradient-text">ComparePro</h3>
+              <h3 className="font-bold text-lg mb-4 gradient-text">MOL BHAOO</h3>
               <p className="text-sm text-muted-foreground">Find the best deals across all domains.</p>
             </div>
             <div>
@@ -236,7 +237,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ComparePro. All rights reserved.
+            © {new Date().getFullYear()} MOL BHAOO. All rights reserved.
           </div>
         </div>
       </footer>

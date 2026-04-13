@@ -8,8 +8,6 @@ import LandingPage from "@/pages/LandingPage";
 import HomeDashboard from "@/pages/HomeDashboard";
 import SearchResults from "@/pages/SearchResults";
 import ComparePage from "@/pages/ComparePage";
-import LoginPage from "@/pages/LoginPage";
-import SignupPage from "@/pages/SignupPage";
 import CategoryPage from "@/pages/CategoryPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/NotFound";
@@ -29,8 +27,6 @@ const App = () => (
             <Route path="/search" element={<SearchResults />} />
             <Route path="/compare/:id" element={<ComparePage />} />
             <Route path="/category/:id" element={<CategoryPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />

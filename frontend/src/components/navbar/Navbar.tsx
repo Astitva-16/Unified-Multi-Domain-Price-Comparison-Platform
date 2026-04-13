@@ -92,11 +92,6 @@ const Navbar = () => {
             <Link to="/home" className="p-2 rounded-lg hover:bg-secondary transition-colors">
               <Heart size={20} />
             </Link>
-            <Link to="/login" className="hidden sm:block">
-              <Button size="sm" variant="outline" className="gap-1">
-                <User size={16} /> Sign in
-              </Button>
-            </Link>
             <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-lg hover:bg-secondary transition-colors md:hidden">
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -140,13 +135,6 @@ const Navbar = () => {
                   <span>{c.icon}</span> {c.name}
                 </Link>
               ))}
-              <hr className="border-border" />
-              <Link to="/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
-                Sign In
-              </Link>
-              <Link to="/signup" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-secondary transition-colors">
-                Sign Up
-              </Link>
             </div>
           </motion.div>
         )}
