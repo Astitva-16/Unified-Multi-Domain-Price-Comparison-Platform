@@ -5,12 +5,12 @@ const comparisonService = require('./comparisonService');
 const cacheService = require('./cacheService');
 
 const mockPlatforms = [
-  { id: 1, name: 'Amazon', base_url: 'https://amazon.in' },
-  { id: 2, name: 'Flipkart', base_url: 'https://flipkart.com' },
-  { id: 3, name: 'Myntra', base_url: 'https://myntra.com' }
+  { id: 1, name: 'Amazon', base_url: 'https://amazon.in', category: 'shopping' },
+  { id: 2, name: 'Flipkart', base_url: 'https://flipkart.com', category: 'shopping' },
+  { id: 3, name: 'Myntra', base_url: 'https://myntra.com', category: 'shopping' }
 ];
 
-const searchAndCompare = async (query, category, supabase) => {
+const searchAndCompare = async (query, category) => {
   try {
     if (!query) {
       return { error: 'Query is required' };
@@ -24,21 +24,10 @@ const searchAndCompare = async (query, category, supabase) => {
 
     let platforms = mockPlatforms;
 
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('platforms').select('*');
-        if (!error && data && data.length > 0) {
-          platforms = data;
-        }
-      } catch (err) {
-        console.log('Using mock platforms');
-      }
-    }
-
     console.log(`📱 Platforms: ${platforms.map(p => p.name).join(', ')}`);
 
     console.log('⏳ Fetching data from platforms...');
-    const rawProducts = await fetcherService.fetchFromAllPlatforms(query, platforms);
+    const rawProducts = await fetcherService.fetchFromAllPlatforms(query, platforms, category);
 
     console.log('🔄 Normalizing data...');
     const normalizedProducts = rawProducts.map((product, index) => {
@@ -109,9 +98,9 @@ const searchAndCompare = async (query, category, supabase) => {
 };
 
 
-const batchSearch = async (queries, supabase) => {
+const batchSearch = async (queries) => {
   const results = await Promise.all(
-    queries.map(q => searchAndCompare(q, 'shopping', supabase))
+    queries.map(q => searchAndCompare(q, 'shopping'))
   );
   return results;
 };
@@ -121,8 +110,13 @@ const getCacheStats = () => {
   return cacheService.getStats();
 };
 
+const findProductById = (productId) => {
+  return cacheService.findProductById(productId);
+};
+
 module.exports = { 
   searchAndCompare,
   batchSearch,
-  getCacheStats
+  getCacheStats,
+  findProductById
 };

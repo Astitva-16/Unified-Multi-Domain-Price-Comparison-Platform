@@ -75,6 +75,21 @@ class SearchCache {
       entries
     };
   }
+
+  findProductById(productId) {
+    for (const value of this.cache.values()) {
+      const payload = value.data;
+      if (!payload || !Array.isArray(payload.results)) continue;
+
+      for (const product of payload.results) {
+        if (product.id === productId) {
+          return product;
+        }
+      }
+    }
+
+    return null;
+  }
 }
 
 const cacheInstance = new SearchCache();

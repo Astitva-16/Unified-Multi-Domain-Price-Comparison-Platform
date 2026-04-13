@@ -1,6 +1,7 @@
 const PRODUCT_SCHEMA = {
   id: '',
   name: '',
+  image: '',
   price: 0,
   currency: 'INR',
   platform_name: '',
@@ -22,6 +23,7 @@ const normalizeProduct = (rawProduct, platformName) => {
       ...PRODUCT_SCHEMA,
       id: rawProduct.id || Math.random().toString(36).substr(2, 9),
       name: String(rawProduct.name || rawProduct.product_name || '').trim(),
+      image: rawProduct.image || rawProduct.product_image || rawProduct.image_url || '',
       price: parseInt(rawProduct.price || 0, 10),
       currency: rawProduct.currency || 'INR',
       platform_name: platformName,
@@ -31,6 +33,7 @@ const normalizeProduct = (rawProduct, platformName) => {
       in_stock: rawProduct.in_stock !== false,
       discount_percent: parseInt(rawProduct.discount_percent || 0, 10),
       delivery_days: parseInt(rawProduct.delivery_days || 5, 10),
+      category: rawProduct.category || '',
       fetched_at: rawProduct.fetched_at || new Date().toISOString()
     };
 

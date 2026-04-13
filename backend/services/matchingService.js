@@ -87,8 +87,10 @@ const formatProductGroups = (groups) => {
     const mostExpensive = group.sort((a, b) => b.price - a.price)[0];
 
     return {
+      id: bestProduct.id || bestProduct.normalized_name,
       product_name: bestProduct.name,
       normalized_name: bestProduct.normalized_name,
+      image: bestProduct.image || '',
       category: bestProduct.category || 'shopping',
       variants: group,
       best_rating: Math.max(...group.map(p => p.rating)),

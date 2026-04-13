@@ -4,6 +4,7 @@ const searchController = require('../controllers/searchController');
 const searchService = require('../services/searchService');
 
 router.get('/search', searchController.searchProducts);
+router.get('/product/:id', searchController.getProductById);
 
 router.get('/cache-stats', (req, res) => {
   try {

@@ -1,7 +1,4 @@
-const axios = require('axios');
-
-
-const generateMockData = (platform, query) => {
+const generateMockData = (platform, query, category = 'shopping') => {
   const pricing = {
     'Amazon': { min: 500, max: 2000, variance: 50 },
     'Flipkart': { min: 450, max: 1900, variance: 60 },
@@ -19,12 +16,14 @@ const generateMockData = (platform, query) => {
     currency: 'INR',
     platform_id: platform.id,
     platform_name: platform.name,
-    platform_url: `${platform.base_url}/search?q=${query}`,
+    platform_url: `${platform.base_url}/search?q=${encodeURIComponent(query)}`,
     rating: (Math.random() * 2 + 3).toFixed(1),
     reviews: Math.floor(Math.random() * 5000),
     in_stock: Math.random() > 0.2,
     discount_percent: Math.floor(Math.random() * 30),
     delivery_days: Math.floor(Math.random() * 5) + 1,
+    image: `https://source.unsplash.com/featured/400x400?${encodeURIComponent(query)}`,
+    category: category || platform.category || 'shopping',
     fetched_at: new Date().toISOString()
   };
 };
@@ -59,9 +58,9 @@ const scrapeMyntra = async (query) => {
   }
 };
 
-const fetchFromAllPlatforms = async (query, platforms) => {
+const fetchFromAllPlatforms = async (query, platforms, category = 'shopping') => {
   const fetchPromises = platforms.map(platform => {
-    return Promise.resolve(generateMockData(platform, query));
+    return Promise.resolve(generateMockData(platform, query, category));
   });
 
   const results = await Promise.all(fetchPromises);
