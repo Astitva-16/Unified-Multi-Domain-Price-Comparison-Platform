@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Mic,
   Camera,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -93,7 +94,6 @@ interface SpeechRecognitionConstructor {
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
-
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
   }
 }
@@ -136,7 +136,17 @@ const Navbar = () => {
 
 
   /* =====================================================
-     VOICE RECOGNITION REF
+     IMAGE SEARCH STATE
+  ====================================================== */
+
+  const [
+    isImageSearching,
+    setIsImageSearching,
+  ] = useState(false);
+
+
+  /* =====================================================
+     REFS
   ====================================================== */
 
   const recognitionRef =
@@ -144,20 +154,13 @@ const Navbar = () => {
       null
     );
 
-
-  /*
-    Final speech jo confirm ho chuki hai.
-  */
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
 
   const finalTranscriptRef =
     useRef("");
-
-
-  /*
-    Latest search query.
-    Ye isliye use kar rahe hain taaki
-    voice recognition purane state ko use na kare.
-  */
 
   const searchQueryRef =
     useRef("");
@@ -220,7 +223,7 @@ const Navbar = () => {
 
 
   /* =====================================================
-     SEARCH
+     NORMAL SEARCH
   ====================================================== */
 
   const handleSearch = (
@@ -246,16 +249,196 @@ const Navbar = () => {
 
 
   /* =====================================================
+     IMAGE SEARCH
+  ====================================================== */
+
+  const handleImageButtonClick =
+    () => {
+
+      if (isImageSearching) {
+        return;
+      }
+
+      fileInputRef.current?.click();
+
+    };
+
+
+  const handleImageSearch = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+
+    /* ---------------------------------------------
+       VALIDATE IMAGE
+    --------------------------------------------- */
+
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+
+      alert(
+        "Please select a valid image file."
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      setIsImageSearching(
+        true
+      );
+
+
+      /* ---------------------------------------------
+         CREATE FORM DATA
+      --------------------------------------------- */
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "image",
+        file
+      );
+
+
+      /* ---------------------------------------------
+         SEND IMAGE TO BACKEND
+      --------------------------------------------- */
+
+      const response =
+        await fetch(
+          "http://localhost:5000/api/image-search",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+
+      /* ---------------------------------------------
+         GET RESPONSE SAFELY
+      --------------------------------------------- */
+
+      const result =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          result.message ||
+          "Image search failed"
+        );
+
+      }
+
+
+      /* ---------------------------------------------
+         GET GEMINI DETECTED QUERY
+      --------------------------------------------- */
+
+      const detectedQuery =
+        result.data?.searchQuery;
+
+
+      if (!detectedQuery) {
+
+        throw new Error(
+          "Could not identify the product from this image."
+        );
+
+      }
+
+
+      /* ---------------------------------------------
+         PUT RESULT IN SEARCH BAR
+      --------------------------------------------- */
+
+      setSearchQuery(
+        detectedQuery
+      );
+
+
+      /* ---------------------------------------------
+         NAVIGATE TO SEARCH PAGE
+      --------------------------------------------- */
+
+      navigate(
+        `/search?q=${encodeURIComponent(
+          detectedQuery
+        )}`
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Image search error:",
+        error
+      );
+
+
+      alert(
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Failed to search using image."
+
+      );
+
+    } finally {
+
+      setIsImageSearching(
+        false
+      );
+
+
+      /*
+        Reset input so same image can
+        also be selected again later.
+      */
+
+      if (
+        fileInputRef.current
+      ) {
+
+        fileInputRef.current.value =
+          "";
+
+      }
+
+    }
+
+  };
+
+
+  /* =====================================================
      VOICE SEARCH
   ====================================================== */
 
   const handleVoiceSearch =
     () => {
 
-      /*
-        Agar already listening hai,
-        mic dobara click karne par stop.
-      */
+
+      /* ---------------------------------------------
+         STOP IF ALREADY LISTENING
+      --------------------------------------------- */
 
       if (
         isListening &&
@@ -269,9 +452,9 @@ const Navbar = () => {
       }
 
 
-      /*
-        Browser support check
-      */
+      /* ---------------------------------------------
+         BROWSER SUPPORT CHECK
+      --------------------------------------------- */
 
       const SpeechRecognition =
         window.SpeechRecognition ||
@@ -291,9 +474,9 @@ const Navbar = () => {
       }
 
 
-      /*
-        New recognition instance
-      */
+      /* ---------------------------------------------
+         CREATE RECOGNITION
+      --------------------------------------------- */
 
       const recognition =
         new SpeechRecognition();
@@ -304,8 +487,7 @@ const Navbar = () => {
 
 
       /*
-        Continuous speech:
-        User continuously bol sakta hai.
+        User continuously bol sakta hai
       */
 
       recognition.continuous =
@@ -313,8 +495,7 @@ const Navbar = () => {
 
 
       /*
-        Jo user bol raha hai,
-        woh live input me dikhega.
+        Live typing while speaking
       */
 
       recognition.interimResults =
@@ -322,32 +503,22 @@ const Navbar = () => {
 
 
       /*
-        Hindi + English ke liye.
-
-        Agar mainly Hindi bolna hai:
-        hi-IN
-
-        Agar mainly English:
-        en-IN
-
-        Yahan India users ke liye
-        Hindi preference rakhi hai.
+        English recognition
       */
 
       recognition.lang =
         "en-IN";
 
 
-      /*
-        Start hone par
-      */
+      /* ---------------------------------------------
+         ON START
+      --------------------------------------------- */
 
       recognition.onstart =
         () => {
 
           finalTranscriptRef.current =
-            searchQueryRef.current
-              .trim()
+            searchQueryRef.current.trim()
               ? `${searchQueryRef.current.trim()} `
               : "";
 
@@ -358,18 +529,20 @@ const Navbar = () => {
         };
 
 
-      /*
-        LIVE SPEECH RESULT
-      */
+      /* ---------------------------------------------
+         LIVE SPEECH RESULT
+      --------------------------------------------- */
 
       recognition.onresult =
         (
           event: SpeechRecognitionEvent
         ) => {
 
-          let finalText = "";
+          let finalText =
+            "";
 
-          let interimText = "";
+          let interimText =
+            "";
 
 
           for (
@@ -385,15 +558,9 @@ const Navbar = () => {
             const result =
               event.results[i];
 
-
             const transcript =
               result[0].transcript;
 
-
-            /*
-              Final result
-              → permanently add
-            */
 
             if (
               result.isFinal
@@ -402,14 +569,7 @@ const Navbar = () => {
               finalText +=
                 transcript;
 
-            }
-
-            /*
-              User abhi jo bol raha hai
-              → live show
-            */
-
-            else {
+            } else {
 
               interimText +=
                 transcript;
@@ -420,7 +580,7 @@ const Navbar = () => {
 
 
           /*
-            Final words ko store karo
+            Permanently save final words
           */
 
           if (
@@ -434,8 +594,7 @@ const Navbar = () => {
 
 
           /*
-            Search bar me
-            final + currently speaking text
+            Final + live currently speaking words
           */
 
           const liveText =
@@ -454,9 +613,9 @@ const Navbar = () => {
         };
 
 
-      /*
-        Error handling
-      */
+      /* ---------------------------------------------
+         ERROR HANDLING
+      --------------------------------------------- */
 
       recognition.onerror =
         (
@@ -469,25 +628,17 @@ const Navbar = () => {
           );
 
 
-          /*
-            Permission denied
-          */
-
           if (
             event.error ===
             "not-allowed"
           ) {
 
             alert(
-              "Microphone permission was denied. Please allow microphone access and try again."
+              "Microphone permission was denied. Please allow microphone access."
             );
 
           }
 
-
-          /*
-            Mic not found
-          */
 
           if (
             event.error ===
@@ -508,9 +659,9 @@ const Navbar = () => {
         };
 
 
-      /*
-        Recognition stop hone par
-      */
+      /* ---------------------------------------------
+         ON END
+      --------------------------------------------- */
 
       recognition.onend =
         () => {
@@ -522,19 +673,15 @@ const Navbar = () => {
         };
 
 
-      /*
-        Start recognition
-      */
+      /* ---------------------------------------------
+         START
+      --------------------------------------------- */
 
       try {
 
         recognition.start();
 
-      }
-
-      catch (
-        error
-      ) {
+      } catch (error) {
 
         console.error(
           "Could not start voice recognition:",
@@ -551,7 +698,7 @@ const Navbar = () => {
 
 
   /* =====================================================
-     CATEGORY
+     CATEGORY CLICK
   ====================================================== */
 
   const handleCategoryClick = (
@@ -585,7 +732,6 @@ const Navbar = () => {
       ) =>
         total +
         item.quantity,
-
       0
     );
 
@@ -643,9 +789,7 @@ const Navbar = () => {
           >
 
 
-            {/* =================================================
-                LOGO
-            ================================================= */}
+            {/* LOGO */}
 
             <Link
               to="/home"
@@ -683,9 +827,7 @@ const Navbar = () => {
             </Link>
 
 
-            {/* =================================================
-                LOCATION
-            ================================================= */}
+            {/* LOCATION */}
 
             <button
               type="button"
@@ -770,9 +912,7 @@ const Navbar = () => {
             </button>
 
 
-            {/* =================================================
-                SEARCH BAR
-            ================================================= */}
+            {/* SEARCH FORM */}
 
             <form
               onSubmit={
@@ -804,9 +944,7 @@ const Navbar = () => {
               >
 
 
-                {/* =============================================
-                    CATEGORY SELECTOR
-                ============================================== */}
+                {/* CATEGORY SELECTOR */}
 
                 <div
                   className="
@@ -853,8 +991,6 @@ const Navbar = () => {
                   </button>
 
 
-                  {/* CATEGORY DROPDOWN */}
-
                   <AnimatePresence>
 
                     {categoryOpen && (
@@ -890,8 +1026,6 @@ const Navbar = () => {
                           z-[60]
                         "
                       >
-
-                        {/* ALL CATEGORIES */}
 
                         <button
                           type="button"
@@ -929,15 +1063,11 @@ const Navbar = () => {
                         </button>
 
 
-                        {/* CATEGORY LIST */}
-
                         {categories.map(
                           (cat) => (
 
                             <button
-                              key={
-                                cat.id
-                              }
+                              key={cat.id}
                               type="button"
                               onClick={() =>
                                 handleCategoryClick(
@@ -982,15 +1112,11 @@ const Navbar = () => {
                 </div>
 
 
-                {/* =============================================
-                    SEARCH INPUT
-                ============================================== */}
+                {/* SEARCH INPUT */}
 
                 <input
                   type="text"
-                  value={
-                    searchQuery
-                  }
+                  value={searchQuery}
                   onChange={(e) =>
                     setSearchQuery(
                       e.target.value
@@ -1013,9 +1139,7 @@ const Navbar = () => {
                 />
 
 
-                {/* =============================================
-                    VOICE SEARCH
-                ============================================== */}
+                {/* VOICE SEARCH */}
 
                 <button
                   type="button"
@@ -1060,12 +1184,16 @@ const Navbar = () => {
                 </button>
 
 
-                {/* =============================================
-                    IMAGE SEARCH
-                ============================================== */}
+                {/* IMAGE SEARCH BUTTON */}
 
                 <button
                   type="button"
+                  onClick={
+                    handleImageButtonClick
+                  }
+                  disabled={
+                    isImageSearching
+                  }
                   className="
                     hidden
                     sm:flex
@@ -1078,20 +1206,52 @@ const Navbar = () => {
                     hover:text-blue-600
                     dark:hover:text-blue-400
                     transition-colors
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
                   "
-                  title="Search by image"
+                  title={
+                    isImageSearching
+                      ? "Searching image..."
+                      : "Search by image"
+                  }
                 >
 
-                  <Camera
-                    size={20}
-                  />
+                  {isImageSearching ? (
+
+                    <Loader2
+                      size={20}
+                      className="
+                        animate-spin
+                      "
+                    />
+
+                  ) : (
+
+                    <Camera
+                      size={20}
+                    />
+
+                  )}
 
                 </button>
 
 
-                {/* =============================================
-                    SEARCH BUTTON
-                ============================================== */}
+                {/* HIDDEN IMAGE INPUT */}
+
+                <input
+                  ref={
+                    fileInputRef
+                  }
+                  type="file"
+                  accept="image/*"
+                  onChange={
+                    handleImageSearch
+                  }
+                  className="hidden"
+                />
+
+
+                {/* SEARCH BUTTON */}
 
                 <button
                   type="submit"
@@ -1121,24 +1281,16 @@ const Navbar = () => {
             </form>
 
 
-            {/* =================================================
-                THEME TOGGLE
-            ================================================= */}
+            {/* THEME TOGGLE */}
 
-            <div
-              className="
-                flex-shrink-0
-              "
-            >
+            <div className="flex-shrink-0">
 
               <ThemeToggle />
 
             </div>
 
 
-            {/* =================================================
-                ACCOUNT
-            ================================================= */}
+            {/* ACCOUNT */}
 
             <div
               className="
@@ -1176,9 +1328,7 @@ const Navbar = () => {
                   "
                 />
 
-                <div
-                  className="text-left"
-                >
+                <div className="text-left">
 
                   <p
                     className="
@@ -1224,8 +1374,6 @@ const Navbar = () => {
 
               </button>
 
-
-              {/* ACCOUNT DROPDOWN */}
 
               <AnimatePresence>
 
@@ -1336,9 +1484,7 @@ const Navbar = () => {
             </div>
 
 
-            {/* =================================================
-                CART
-            ================================================= */}
+            {/* CART */}
 
             <Link
               to="/cart"
@@ -1377,8 +1523,6 @@ const Navbar = () => {
                 Cart
               </span>
 
-
-              {/* CART COUNT */}
 
               {cartCount > 0 && (
 
@@ -1457,11 +1601,7 @@ const Navbar = () => {
                   "
                 >
 
-                  <span
-                    className="
-                      text-lg
-                    "
-                  >
+                  <span className="text-lg">
                     {cat.icon}
                   </span>
 
@@ -1479,14 +1619,10 @@ const Navbar = () => {
       </header>
 
 
-      {/* =====================================================
-          LOCATION MODAL
-      ====================================================== */}
+      {/* LOCATION MODAL */}
 
       <LocationModal
-        open={
-          locationOpen
-        }
+        open={locationOpen}
         onClose={() =>
           setLocationOpen(
             false
