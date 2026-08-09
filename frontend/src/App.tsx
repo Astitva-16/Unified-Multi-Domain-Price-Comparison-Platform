@@ -38,6 +38,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import AuthPage from "@/pages/AuthPage";
 
 import NotFound from "@/pages/NotFound";
+import EditProfilePage from "@/pages/EditProfilePage";
 
 
 const queryClient = new QueryClient();
@@ -139,6 +140,11 @@ const App = () => {
                 <Route
                   path="/profile"
                   element={<ProfilePage />}
+                />
+
+                <Route
+                  path="/profile/edit"
+                  element={<EditProfilePage />}
                 />
 
 
