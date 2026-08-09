@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router-dom";
+
 import { motion } from "framer-motion";
+
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -11,9 +13,11 @@ import {
   Trophy,
   BadgePercent,
   ShieldCheck,
+  Heart,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+
 import { useStore } from "@/store/useStore";
 
 
@@ -23,9 +27,11 @@ import { useStore } from "@/store/useStore";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000/api"
-    : "/api");
+  (
+    import.meta.env.DEV
+      ? "http://localhost:5000/api"
+      : "/api"
+  );
 
 
 /* =====================================================
@@ -37,7 +43,9 @@ const fetchProduct = async (
 ) => {
 
   if (!id) {
-    throw new Error("Missing product id");
+    throw new Error(
+      "Missing product id"
+    );
   }
 
   const response = await fetch(
@@ -45,7 +53,9 @@ const fetchProduct = async (
   );
 
   if (!response.ok) {
-    throw new Error("Product not found");
+    throw new Error(
+      "Product not found"
+    );
   }
 
   return response.json();
@@ -59,10 +69,18 @@ const fetchProduct = async (
 
 const ComparePage = () => {
 
-  const { id } = useParams();
+  const { id } =
+    useParams();
+
+
+  /* =====================================================
+     STORE
+  ===================================================== */
 
   const {
     addToCart,
+    toggleWishlist,
+    isInWishlist,
   } = useStore();
 
 
@@ -86,7 +104,8 @@ const ComparePage = () => {
 
     enabled: !!id,
 
-    staleTime: 30 * 60 * 1000,
+    staleTime:
+      30 * 60 * 1000,
 
   });
 
@@ -135,14 +154,20 @@ const ComparePage = () => {
 
             <div className="grid sm:grid-cols-3 gap-4 mt-8">
 
-              {[1, 2, 3].map((item) => (
+              {[1, 2, 3].map(
+                (item) => (
 
-                <div
-                  key={item}
-                  className="h-40 bg-muted rounded-xl"
-                />
+                  <div
+                    key={item}
+                    className="
+                      h-40
+                      bg-muted
+                      rounded-xl
+                    "
+                  />
 
-              ))}
+                )
+              )}
 
             </div>
 
@@ -165,11 +190,27 @@ const ComparePage = () => {
 
     return (
 
-      <div className="min-h-[70vh] bg-background flex items-center justify-center px-4">
+      <div className="
+        min-h-[70vh]
+        bg-background
+        flex
+        items-center
+        justify-center
+        px-4
+      ">
 
         <div className="text-center">
 
-          <div className="w-16 h-16 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
+          <div className="
+            w-16
+            h-16
+            mx-auto
+            rounded-full
+            bg-destructive/10
+            flex
+            items-center
+            justify-center
+          ">
 
             <ShoppingCart
               size={28}
@@ -179,14 +220,22 @@ const ComparePage = () => {
           </div>
 
 
-          <h1 className="text-2xl font-bold text-foreground mt-5">
+          <h1 className="
+            text-2xl
+            font-bold
+            text-foreground
+            mt-5
+          ">
 
             Product not found
 
           </h1>
 
 
-          <p className="text-muted-foreground mt-2">
+          <p className="
+            text-muted-foreground
+            mt-2
+          ">
 
             We couldn't load this product.
 
@@ -195,7 +244,14 @@ const ComparePage = () => {
 
           <Link
             to="/search"
-            className="inline-flex items-center gap-2 mt-5 text-primary hover:underline"
+            className="
+              inline-flex
+              items-center
+              gap-2
+              mt-5
+              text-primary
+              hover:underline
+            "
           >
 
             <ArrowLeft size={16} />
@@ -227,12 +283,91 @@ const ComparePage = () => {
     "Product";
 
 
+  /* =====================================================
+     CREATE PRODUCT FOR CART + WISHLIST
+  ===================================================== */
+
+  const wishlistProduct = {
+
+    id:
+      String(product.id),
+
+    name:
+      productName,
+
+    image:
+      product.image || "",
+
+    category:
+      product.category ||
+      "shopping",
+
+    prices:
+
+      variants.map(
+        (item: any) => ({
+
+          platform:
+            item.platform_name ||
+            item.platform,
+
+          price:
+            Number(item.price) || 0,
+
+          rating:
+            Number(item.rating) || 0,
+
+          delivery:
+
+            item.delivery ||
+
+            (
+              item.delivery_days
+                ? `${item.delivery_days} days`
+                : "N/A"
+            ),
+
+          discount:
+
+            item.discount ||
+
+            (
+              item.discount_percent
+                ? `${item.discount_percent}% off`
+                : undefined
+            ),
+
+        })
+      ),
+
+  };
+
+
+  /* =====================================================
+     WISHLIST STATUS
+  ===================================================== */
+
+  const isWishlisted =
+    isInWishlist(
+      String(product.id)
+    );
+
+
+  /* =====================================================
+     PRICE CALCULATIONS
+  ===================================================== */
+
   const validPrices =
+
     variants
+
       .map(
         (variant: any) =>
-          Number(variant.price)
+          Number(
+            variant.price
+          )
       )
+
       .filter(
         (price: number) =>
           price > 0
@@ -240,19 +375,31 @@ const ComparePage = () => {
 
 
   const lowestPrice =
+
     validPrices.length > 0
-      ? Math.min(...validPrices)
+
+      ? Math.min(
+          ...validPrices
+        )
+
       : 0;
 
 
   const highestPrice =
+
     validPrices.length > 0
-      ? Math.max(...validPrices)
+
+      ? Math.max(
+          ...validPrices
+        )
+
       : 0;
 
 
   const averagePrice =
+
     validPrices.length > 0
+
       ? Math.floor(
 
           validPrices.reduce(
@@ -260,11 +407,16 @@ const ComparePage = () => {
               sum: number,
               price: number
             ) =>
+
               sum + price,
+
             0
-          ) / validPrices.length
+          )
+
+          / validPrices.length
 
         )
+
       : 0;
 
 
@@ -273,22 +425,40 @@ const ComparePage = () => {
   ===================================================== */
 
   const savings =
+
     product.savings_analysis?.savings ??
+
     Math.max(
       0,
-      averagePrice - lowestPrice
+      averagePrice -
+      lowestPrice
     );
 
 
   const savingsPercent =
-    product.savings_analysis?.savings_percent ??
+
+    product.savings_analysis
+      ?.savings_percent
+
+    ??
+
     (
+
       averagePrice > 0
+
         ? Math.floor(
-            (savings / averagePrice) *
-            100
+
+            (
+              savings /
+              averagePrice
+            )
+
+            * 100
+
           )
+
         : 0
+
     );
 
 
@@ -297,37 +467,75 @@ const ComparePage = () => {
   ===================================================== */
 
   const cheapest =
+
     variants.length > 0
+
       ? [...variants]
+
           .filter(
             (variant: any) =>
-              Number(variant.price) > 0
+              Number(
+                variant.price
+              ) > 0
           )
+
           .sort(
-            (a: any, b: any) =>
+            (
+              a: any,
+              b: any
+            ) =>
+
               Number(a.price) -
               Number(b.price)
           )[0]
+
       : null;
 
 
   const bestQuality =
+
     variants.length > 0
+
       ? [...variants]
+
           .sort(
-            (a: any, b: any) =>
-              Number(b.rating || 0) -
-              Number(a.rating || 0)
+            (
+              a: any,
+              b: any
+            ) =>
+
+              Number(
+                b.rating || 0
+              )
+
+              -
+
+              Number(
+                a.rating || 0
+              )
           )[0]
+
       : null;
 
 
   const bestValue =
-    product.value_analysis?.best_value ||
-    product.recommendations?.find(
-      (recommendation: any) =>
-        recommendation.type === "best_value"
-    )?.product ||
+
+    product.value_analysis
+      ?.best_value
+
+    ||
+
+    product.recommendations
+      ?.find(
+        (recommendation: any) =>
+
+          recommendation.type ===
+          "best_value"
+      )
+      ?.product
+
+    ||
+
     cheapest;
 
 
@@ -341,55 +549,14 @@ const ComparePage = () => {
 
     addToCart(
 
-      {
-        id: product.id,
-
-        name: productName,
-
-        image: product.image || "",
-
-        category:
-          product.category ||
-          "shopping",
-
-        prices: variants.map(
-          (item: any) => ({
-
-            platform:
-              item.platform_name ||
-              item.platform,
-
-            price:
-              Number(item.price) || 0,
-
-            rating:
-              Number(item.rating) || 0,
-
-            delivery:
-              item.delivery ||
-              (
-                item.delivery_days
-                  ? `${item.delivery_days} days`
-                  : "N/A"
-              ),
-
-            discount:
-              item.discount ||
-              (
-                item.discount_percent
-                  ? `${item.discount_percent}% off`
-                  : undefined
-              ),
-
-          })
-        ),
-
-      },
+      wishlistProduct,
 
       variant.platform_name ||
-        variant.platform,
+      variant.platform,
 
-      Number(variant.price) || 0,
+      Number(
+        variant.price
+      ) || 0,
 
       variant.platform_url
 
@@ -403,15 +570,19 @@ const ComparePage = () => {
   ===================================================== */
 
   const handleBuy = (
-    platformUrl: string | undefined
+    platformUrl:
+      | string
+      | undefined
   ) => {
 
     if (!platformUrl) {
+
       alert(
         "Product link is currently unavailable."
       );
 
       return;
+
     }
 
     window.open(
@@ -429,18 +600,35 @@ const ComparePage = () => {
 
   return (
 
-    <div className="min-h-screen bg-background">
+    <div className="
+      min-h-screen
+      bg-background
+    ">
 
-      <div className="max-w-[1200px] mx-auto px-4 py-6">
+      <div className="
+        max-w-[1200px]
+        mx-auto
+        px-4
+        py-6
+      ">
 
 
-        {/* =================================================
+        {/* ===============================================
             BACK
-        ================================================== */}
+        ================================================ */}
 
         <Link
           to="/search"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6"
+          className="
+            inline-flex
+            items-center
+            gap-2
+            text-sm
+            text-muted-foreground
+            hover:text-primary
+            transition-colors
+            mb-6
+          "
         >
 
           <ArrowLeft size={16} />
@@ -450,9 +638,9 @@ const ComparePage = () => {
         </Link>
 
 
-        {/* =================================================
+        {/* ===============================================
             PRODUCT HEADER
-        ================================================== */}
+        ================================================ */}
 
         <motion.section
 
@@ -466,52 +654,105 @@ const ComparePage = () => {
             y: 0,
           }}
 
-          className="bg-card rounded-2xl border border-border p-5 md:p-7"
+          className="
+            bg-card
+            rounded-2xl
+            border
+            border-border
+            p-5
+            md:p-7
+          "
 
         >
 
-          <div className="grid md:grid-cols-[300px_1fr] gap-8">
+          <div className="
+            grid
+            md:grid-cols-[300px_1fr]
+            gap-8
+          ">
 
 
             {/* Product Image */}
 
-            <div className="aspect-square bg-muted rounded-xl overflow-hidden">
+            <div className="
+              aspect-square
+              bg-muted
+              rounded-xl
+              overflow-hidden
+            ">
 
-              {product.image ? (
+              {
 
-                <img
-                  src={product.image}
-                  alt={productName}
-                  className="w-full h-full object-cover"
-                />
+                product.image
 
-              ) : (
+                  ? (
 
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <img
+                      src={product.image}
+                      alt={productName}
+                      className="
+                        w-full
+                        h-full
+                        object-cover
+                      "
+                    />
 
-                  No Image Available
+                  )
 
-                </div>
+                  : (
 
-              )}
+                    <div className="
+                      w-full
+                      h-full
+                      flex
+                      items-center
+                      justify-center
+                      text-muted-foreground
+                    ">
+
+                      No Image Available
+
+                    </div>
+
+                  )
+
+              }
 
             </div>
 
 
             {/* Product Info */}
 
-            <div className="flex flex-col justify-center">
+            <div className="
+              flex
+              flex-col
+              justify-center
+            ">
 
 
-              <p className="text-xs uppercase tracking-wide text-primary font-semibold">
+              <p className="
+                text-xs
+                uppercase
+                tracking-wide
+                text-primary
+                font-semibold
+              ">
 
-                {product.category ||
-                  "Shopping"}
+                {
+                  product.category ||
+                  "Shopping"
+                }
 
               </p>
 
 
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mt-2">
+              <h1 className="
+                text-2xl
+                md:text-3xl
+                font-bold
+                text-foreground
+                mt-2
+              ">
 
                 {productName}
 
@@ -520,23 +761,44 @@ const ComparePage = () => {
 
               {/* Rating */}
 
-              <div className="flex items-center gap-3 mt-4">
+              <div className="
+                flex
+                items-center
+                gap-3
+                mt-4
+              ">
 
-                <div className="inline-flex items-center gap-1 bg-success text-success-foreground px-2.5 py-1 rounded-md text-sm font-semibold">
+                <div className="
+                  inline-flex
+                  items-center
+                  gap-1
+                  bg-success
+                  text-success-foreground
+                  px-2.5
+                  py-1
+                  rounded-md
+                  text-sm
+                  font-semibold
+                ">
 
                   <Star
                     size={14}
                     className="fill-current"
                   />
 
-                  {product.average_rating ||
+                  {
+                    product.average_rating ||
                     product.best_rating ||
-                    "4.0"}
+                    "4.0"
+                  }
 
                 </div>
 
 
-                <span className="text-sm text-muted-foreground">
+                <span className="
+                  text-sm
+                  text-muted-foreground
+                ">
 
                   Compared across{" "}
 
@@ -553,16 +815,29 @@ const ComparePage = () => {
 
               <div className="mt-7">
 
-                <p className="text-sm text-muted-foreground">
+                <p className="
+                  text-sm
+                  text-muted-foreground
+                ">
 
                   Best price available
 
                 </p>
 
 
-                <div className="flex flex-wrap items-baseline gap-3 mt-1">
+                <div className="
+                  flex
+                  flex-wrap
+                  items-baseline
+                  gap-3
+                  mt-1
+                ">
 
-                  <span className="text-3xl font-bold text-foreground">
+                  <span className="
+                    text-3xl
+                    font-bold
+                    text-foreground
+                  ">
 
                     ₹
                     {lowestPrice.toLocaleString()}
@@ -570,36 +845,100 @@ const ComparePage = () => {
                   </span>
 
 
-                  {savings > 0 && (
+                  {
 
-                    <span className="text-sm font-semibold text-success">
+                    savings > 0 && (
 
-                      Save ₹
-                      {savings.toLocaleString()}
+                      <span className="
+                        text-sm
+                        font-semibold
+                        text-success
+                      ">
 
-                    </span>
+                        Save ₹
+                        {savings.toLocaleString()}
 
-                  )}
+                      </span>
+
+                    )
+
+                  }
 
                 </div>
 
 
-                {cheapest && (
+                {
 
-                  <p className="text-sm text-muted-foreground mt-1">
+                  cheapest && (
 
-                    Lowest on{" "}
+                    <p className="
+                      text-sm
+                      text-muted-foreground
+                      mt-1
+                    ">
 
-                    <span className="font-semibold text-foreground">
+                      Lowest on{" "}
 
-                      {cheapest.platform_name ||
-                        cheapest.platform}
+                      <span className="
+                        font-semibold
+                        text-foreground
+                      ">
 
-                    </span>
+                        {
+                          cheapest.platform_name ||
+                          cheapest.platform
+                        }
 
-                  </p>
+                      </span>
 
-                )}
+                    </p>
+
+                  )
+
+                }
+
+
+                {/* =========================================
+                    WISHLIST BUTTON
+                ========================================== */}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    toggleWishlist(
+                      wishlistProduct
+                    )
+                  }
+                  className={`
+                    gap-2
+                    mt-5
+                    w-fit
+                    transition-all
+                    ${
+                      isWishlisted
+                        ? "text-red-500 border-red-300 bg-red-50 dark:bg-red-500/10"
+                        : ""
+                    }
+                  `}
+                >
+
+                  <Heart
+                    size={18}
+                    className={
+                      isWishlisted
+                        ? "fill-red-500 text-red-500"
+                        : ""
+                    }
+                  />
+
+                  {
+                    isWishlisted
+                      ? "Wishlisted"
+                      : "Add to Wishlist"
+                  }
+
+                </Button>
 
               </div>
 
@@ -610,41 +949,66 @@ const ComparePage = () => {
         </motion.section>
 
 
-        {/* =================================================
+        {/* ===============================================
             HIGHLIGHTS
-        ================================================== */}
+        ================================================ */}
 
-        <section className="grid sm:grid-cols-3 gap-4 mt-6">
+        <section className="
+          grid
+          sm:grid-cols-3
+          gap-4
+          mt-6
+        ">
 
 
           {/* Best Value */}
 
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="
+            bg-card
+            border
+            border-border
+            rounded-xl
+            p-5
+          ">
 
-            <div className="flex items-center gap-2 text-primary">
+            <div className="
+              flex
+              items-center
+              gap-2
+              text-primary
+            ">
 
               <Trophy size={20} />
 
               <span className="font-semibold">
-
                 Best Value
-
               </span>
 
             </div>
 
 
-            <p className="text-xl font-bold text-foreground mt-4">
+            <p className="
+              text-xl
+              font-bold
+              text-foreground
+              mt-4
+            ">
 
-              {bestValue?.platform_name ||
+              {
+                bestValue?.platform_name ||
                 bestValue?.platform ||
                 cheapest?.platform_name ||
-                "—"}
+                "—"
+              }
 
             </p>
 
 
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="
+              text-sm
+              text-muted-foreground
+              mt-1
+            ">
 
               Best overall combination
 
@@ -655,22 +1019,36 @@ const ComparePage = () => {
 
           {/* Cheapest */}
 
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="
+            bg-card
+            border
+            border-border
+            rounded-xl
+            p-5
+          ">
 
-            <div className="flex items-center gap-2 text-success">
+            <div className="
+              flex
+              items-center
+              gap-2
+              text-success
+            ">
 
               <BadgePercent size={20} />
 
               <span className="font-semibold">
-
                 Cheapest
-
               </span>
 
             </div>
 
 
-            <p className="text-xl font-bold text-foreground mt-4">
+            <p className="
+              text-xl
+              font-bold
+              text-foreground
+              mt-4
+            ">
 
               ₹
               {lowestPrice.toLocaleString()}
@@ -678,13 +1056,19 @@ const ComparePage = () => {
             </p>
 
 
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="
+              text-sm
+              text-muted-foreground
+              mt-1
+            ">
 
               On{" "}
 
-              {cheapest?.platform_name ||
+              {
+                cheapest?.platform_name ||
                 cheapest?.platform ||
-                "—"}
+                "—"
+              }
 
             </p>
 
@@ -693,38 +1077,60 @@ const ComparePage = () => {
 
           {/* Best Rated */}
 
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="
+            bg-card
+            border
+            border-border
+            rounded-xl
+            p-5
+          ">
 
-            <div className="flex items-center gap-2 text-warning">
+            <div className="
+              flex
+              items-center
+              gap-2
+              text-warning
+            ">
 
               <ShieldCheck size={20} />
 
               <span className="font-semibold">
-
                 Best Rated
-
               </span>
 
             </div>
 
 
-            <p className="text-xl font-bold text-foreground mt-4">
+            <p className="
+              text-xl
+              font-bold
+              text-foreground
+              mt-4
+            ">
 
-              {bestQuality?.rating ||
-                "—"}{" "}
+              {
+                bestQuality?.rating ||
+                "—"
+              }{" "}
 
               ⭐
 
             </p>
 
 
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="
+              text-sm
+              text-muted-foreground
+              mt-1
+            ">
 
               On{" "}
 
-              {bestQuality?.platform_name ||
+              {
+                bestQuality?.platform_name ||
                 bestQuality?.platform ||
-                "—"}
+                "—"
+              }
 
             </p>
 
@@ -733,20 +1139,36 @@ const ComparePage = () => {
         </section>
 
 
-        {/* =================================================
+        {/* ===============================================
             SAVINGS SUMMARY
-        ================================================== */}
+        ================================================ */}
 
-        <section className="bg-card border border-border rounded-xl p-5 md:p-6 mt-6">
+        <section className="
+          bg-card
+          border
+          border-border
+          rounded-xl
+          p-5
+          md:p-6
+          mt-6
+        ">
 
-          <div className="flex items-center gap-2">
+          <div className="
+            flex
+            items-center
+            gap-2
+          ">
 
             <BadgePercent
               size={20}
               className="text-success"
             />
 
-            <h2 className="text-lg font-bold text-foreground">
+            <h2 className="
+              text-lg
+              font-bold
+              text-foreground
+            ">
 
               Price Summary
 
@@ -755,18 +1177,32 @@ const ComparePage = () => {
           </div>
 
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-6">
+          <div className="
+            grid
+            grid-cols-2
+            md:grid-cols-4
+            gap-5
+            mt-6
+          ">
 
 
             <div>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="
+                text-sm
+                text-muted-foreground
+              ">
 
                 Lowest Price
 
               </p>
 
-              <p className="text-xl font-bold text-foreground mt-1">
+              <p className="
+                text-xl
+                font-bold
+                text-foreground
+                mt-1
+              ">
 
                 ₹
                 {lowestPrice.toLocaleString()}
@@ -778,13 +1214,21 @@ const ComparePage = () => {
 
             <div>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="
+                text-sm
+                text-muted-foreground
+              ">
 
                 Average Price
 
               </p>
 
-              <p className="text-xl font-bold text-foreground mt-1">
+              <p className="
+                text-xl
+                font-bold
+                text-foreground
+                mt-1
+              ">
 
                 ₹
                 {averagePrice.toLocaleString()}
@@ -796,13 +1240,21 @@ const ComparePage = () => {
 
             <div>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="
+                text-sm
+                text-muted-foreground
+              ">
 
                 Highest Price
 
               </p>
 
-              <p className="text-xl font-bold text-foreground mt-1">
+              <p className="
+                text-xl
+                font-bold
+                text-foreground
+                mt-1
+              ">
 
                 ₹
                 {highestPrice.toLocaleString()}
@@ -814,13 +1266,21 @@ const ComparePage = () => {
 
             <div>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="
+                text-sm
+                text-muted-foreground
+              ">
 
                 You Save
 
               </p>
 
-              <p className="text-xl font-bold text-success mt-1">
+              <p className="
+                text-xl
+                font-bold
+                text-success
+                mt-1
+              ">
 
                 ₹
                 {savings.toLocaleString()}
@@ -840,23 +1300,31 @@ const ComparePage = () => {
         </section>
 
 
-        {/* =================================================
+        {/* ===============================================
             PLATFORM COMPARISON
-        ================================================== */}
+        ================================================ */}
 
         <section className="mt-8">
 
 
           <div className="mb-4">
 
-            <h2 className="text-xl font-bold text-foreground">
+            <h2 className="
+              text-xl
+              font-bold
+              text-foreground
+            ">
 
               Compare Prices
 
             </h2>
 
 
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="
+              text-sm
+              text-muted-foreground
+              mt-1
+            ">
 
               Find the best place to buy this product.
 
@@ -867,361 +1335,538 @@ const ComparePage = () => {
 
           <div className="space-y-4">
 
+            {
 
-            {variants
+              variants
 
-              .slice()
+                .slice()
 
-              .sort(
-                (a: any, b: any) =>
-                  Number(a.price) -
-                  Number(b.price)
-              )
+                .sort(
+                  (a: any, b: any) =>
+                    Number(a.price) -
+                    Number(b.price)
+                )
 
-              .map(
-                (
-                  variant: any,
-                  index: number
-                ) => {
+                .map(
+                  (
+                    variant: any,
+                    index: number
+                  ) => {
 
-                  const price =
-                    Number(variant.price) || 0;
-
-
-                  const isBestPrice =
-                    price > 0 &&
-                    price === lowestPrice;
+                    const price =
+                      Number(
+                        variant.price
+                      ) || 0;
 
 
-                  const discount =
-                    Number(
-                      variant.discount_percent
-                    ) || 0;
+                    const isBestPrice =
+
+                      price > 0 &&
+
+                      price ===
+                      lowestPrice;
 
 
-                  const platformName =
-                    variant.platform_name ||
-                    variant.platform ||
-                    "Unknown";
+                    const discount =
+
+                      Number(
+                        variant.discount_percent
+                      ) || 0;
 
 
-                  return (
+                    const platformName =
 
-                    <motion.div
+                      variant.platform_name ||
 
-                      key={
-                        variant.id ||
-                        `${platformName}-${index}`
-                      }
+                      variant.platform ||
 
-                      initial={{
-                        opacity: 0,
-                        y: 10,
-                      }}
-
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-
-                      transition={{
-                        delay:
-                          index * 0.08,
-                      }}
-
-                      className={`bg-card rounded-xl border p-5 md:p-6 transition-shadow hover:shadow-md ${
-                        isBestPrice
-                          ? "border-success/60 ring-1 ring-success/20"
-                          : "border-border"
-                      }`}
-
-                    >
-
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+                      "Unknown";
 
 
-                        {/* Platform */}
+                    return (
 
-                        <div className="lg:w-40">
+                      <motion.div
 
-                          <div className="flex items-center gap-2">
+                        key={
+                          variant.id ||
+                          `${platformName}-${index}`
+                        }
+
+                        initial={{
+                          opacity: 0,
+                          y: 10,
+                        }}
+
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+
+                        transition={{
+                          delay:
+                            index * 0.08,
+                        }}
+
+                        className={`
+                          bg-card
+                          rounded-xl
+                          border
+                          p-5
+                          md:p-6
+                          transition-shadow
+                          hover:shadow-md
+                          ${
+                            isBestPrice
+                              ? "border-success/60 ring-1 ring-success/20"
+                              : "border-border"
+                          }
+                        `}
+
+                      >
+
+                        <div className="
+                          flex
+                          flex-col
+                          lg:flex-row
+                          lg:items-center
+                          gap-5
+                        ">
 
 
-                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground">
+                          {/* Platform */}
 
-                              {platformName
-                                .charAt(0)
-                                .toUpperCase()}
+                          <div className="lg:w-40">
+
+                            <div className="
+                              flex
+                              items-center
+                              gap-2
+                            ">
+
+                              <div className="
+                                w-10
+                                h-10
+                                rounded-lg
+                                bg-muted
+                                flex
+                                items-center
+                                justify-center
+                                font-bold
+                                text-sm
+                                text-foreground
+                              ">
+
+                                {
+                                  platformName
+                                    .charAt(0)
+                                    .toUpperCase()
+                                }
+
+                              </div>
+
+
+                              <div>
+
+                                <p className="
+                                  font-bold
+                                  text-foreground
+                                ">
+
+                                  {platformName}
+
+                                </p>
+
+
+                                {
+
+                                  isBestPrice && (
+
+                                    <span className="
+                                      inline-flex
+                                      items-center
+                                      gap-1
+                                      mt-1
+                                      text-[11px]
+                                      font-bold
+                                      text-success
+                                      bg-success/10
+                                      px-2
+                                      py-0.5
+                                      rounded-full
+                                    ">
+
+                                      🏆 BEST PRICE
+
+                                    </span>
+
+                                  )
+
+                                }
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+
+                          {/* Price */}
+
+                          <div className="flex-1">
+
+                            <div className="
+                              flex
+                              flex-wrap
+                              items-baseline
+                              gap-3
+                            ">
+
+                              <span className="
+                                text-2xl
+                                font-bold
+                                text-foreground
+                              ">
+
+                                ₹
+                                {price.toLocaleString()}
+
+                              </span>
+
+
+                              {
+
+                                discount > 0 && (
+
+                                  <span className="
+                                    text-sm
+                                    font-semibold
+                                    text-success
+                                  ">
+
+                                    {discount}% off
+
+                                  </span>
+
+                                )
+
+                              }
 
                             </div>
 
 
-                            <div>
+                            <div className="
+                              flex
+                              flex-wrap
+                              items-center
+                              gap-4
+                              mt-3
+                              text-sm
+                              text-muted-foreground
+                            ">
 
-                              <p className="font-bold text-foreground">
 
-                                {platformName}
+                              {/* Rating */}
 
-                              </p>
+                              <div className="
+                                flex
+                                items-center
+                                gap-1
+                              ">
 
+                                <Star
+                                  size={14}
+                                  className="
+                                    fill-yellow-400
+                                    text-yellow-400
+                                  "
+                                />
 
-                              {isBestPrice && (
+                                <span className="
+                                  font-medium
+                                  text-foreground
+                                ">
 
-                                <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
-
-                                  🏆 BEST PRICE
+                                  {
+                                    variant.rating ||
+                                    "N/A"
+                                  }
 
                                 </span>
 
-                              )}
+                              </div>
+
+
+                              {/* Delivery */}
+
+                              <div className="
+                                flex
+                                items-center
+                                gap-1
+                              ">
+
+                                <Truck
+                                  size={14}
+                                />
+
+                                <span>
+
+                                  {
+                                    variant.delivery ||
+
+                                    (
+                                      variant.delivery_days
+
+                                        ? `${variant.delivery_days} days`
+
+                                        : "Delivery unavailable"
+                                    )
+                                  }
+
+                                </span>
+
+                              </div>
+
+
+                              {/* Reviews */}
+
+                              {
+
+                                variant.review_count && (
+
+                                  <span>
+
+                                    {
+                                      Number(
+                                        variant.review_count
+                                      ).toLocaleString()
+                                    }{" "}
+
+                                    reviews
+
+                                  </span>
+
+                                )
+
+                              }
 
                             </div>
 
                           </div>
 
-                        </div>
+
+                          {/* Actions */}
+
+                          <div className="
+                            flex
+                            flex-wrap
+                            gap-2
+                          ">
 
 
-                        {/* Price */}
+                            {/* Add to Cart */}
 
-                        <div className="flex-1">
+                            <Button
 
+                              size="sm"
 
-                          <div className="flex flex-wrap items-baseline gap-3">
+                              variant="outline"
 
-                            <span className="text-2xl font-bold text-foreground">
+                              onClick={() =>
+                                handleAddToCart(
+                                  variant
+                                )
+                              }
 
-                              ₹
-                              {price.toLocaleString()}
+                              className="
+                                gap-2
+                                border-border
+                                bg-card
+                                text-foreground
+                                hover:bg-muted
+                              "
 
-                            </span>
+                            >
 
-
-                            {discount > 0 && (
-
-                              <span className="text-sm font-semibold text-success">
-
-                                {discount}% off
-
-                              </span>
-
-                            )}
-
-                          </div>
-
-
-                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
-
-
-                            {/* Rating */}
-
-                            <div className="flex items-center gap-1">
-
-                              <Star
-                                size={14}
-                                className="fill-yellow-400 text-yellow-400"
+                              <ShoppingCart
+                                size={15}
                               />
 
-                              <span className="font-medium text-foreground">
+                              Add to Cart
 
-                                {variant.rating ||
-                                  "N/A"}
-
-                              </span>
-
-                            </div>
+                            </Button>
 
 
-                            {/* Delivery */}
+                            {/* Buy */}
 
-                            <div className="flex items-center gap-1">
+                            <Button
 
-                              <Truck
+                              size="sm"
+
+                              onClick={() =>
+                                handleBuy(
+                                  variant.platform_url
+                                )
+                              }
+
+                              disabled={
+                                !variant.platform_url
+                              }
+
+                              className={`
+                                gap-2
+                                ${
+                                  isBestPrice
+                                    ? "bg-success text-success-foreground hover:bg-success/90"
+                                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                }
+                              `}
+
+                            >
+
+                              Buy
+
+                              <ExternalLink
                                 size={14}
                               />
 
-                              <span>
-
-                                {variant.delivery ||
-                                  (
-                                    variant.delivery_days
-                                      ? `${variant.delivery_days} days`
-                                      : "Delivery unavailable"
-                                  )}
-
-                              </span>
-
-                            </div>
-
-
-                            {/* Reviews */}
-
-                            {variant.review_count && (
-
-                              <span>
-
-                                {Number(
-                                  variant.review_count
-                                ).toLocaleString()}{" "}
-
-                                reviews
-
-                              </span>
-
-                            )}
+                            </Button>
 
                           </div>
 
                         </div>
 
+                      </motion.div>
 
-                        {/* Actions */}
+                    );
 
-                        <div className="flex flex-wrap gap-2">
+                  }
 
+                )
 
-                          {/* Add to Cart */}
-
-                          <Button
-
-                            size="sm"
-
-                            variant="outline"
-
-                            onClick={() =>
-                              handleAddToCart(
-                                variant
-                              )
-                            }
-
-                            className="gap-2 border-border bg-card text-foreground hover:bg-muted"
-
-                          >
-
-                            <ShoppingCart
-                              size={15}
-                            />
-
-                            Add to Cart
-
-                          </Button>
-
-
-                          {/* Buy */}
-
-                          <Button
-
-                            size="sm"
-
-                            onClick={() =>
-                              handleBuy(
-                                variant.platform_url
-                              )
-                            }
-
-                            disabled={
-                              !variant.platform_url
-                            }
-
-                            className={`gap-2 ${
-                              isBestPrice
-                                ? "bg-success text-success-foreground hover:bg-success/90"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
-                            }`}
-
-                          >
-
-                            Buy
-
-                            <ExternalLink
-                              size={14}
-                            />
-
-                          </Button>
-
-                        </div>
-
-                      </div>
-
-                    </motion.div>
-
-                  );
-
-                }
-
-              )}
+            }
 
           </div>
 
 
           {/* No Platforms */}
 
-          {variants.length === 0 && (
+          {
 
-            <div className="bg-card border border-border rounded-xl p-10 text-center">
+            variants.length === 0 && (
 
-              <ShoppingCart
-                size={40}
-                className="mx-auto text-muted-foreground"
-              />
+              <div className="
+                bg-card
+                border
+                border-border
+                rounded-xl
+                p-10
+                text-center
+              ">
 
-              <h3 className="text-lg font-bold text-foreground mt-4">
+                <ShoppingCart
+                  size={40}
+                  className="
+                    mx-auto
+                    text-muted-foreground
+                  "
+                />
 
-                No price comparisons available
+                <h3 className="
+                  text-lg
+                  font-bold
+                  text-foreground
+                  mt-4
+                ">
 
-              </h3>
+                  No price comparisons available
 
-              <p className="text-sm text-muted-foreground mt-2">
+                </h3>
 
-                We couldn't find platform pricing for this product.
+                <p className="
+                  text-sm
+                  text-muted-foreground
+                  mt-2
+                ">
 
-              </p>
+                  We couldn't find platform pricing
+                  for this product.
 
-            </div>
+                </p>
 
-          )}
+              </div>
+
+            )
+
+          }
 
         </section>
 
 
-        {/* =================================================
+        {/* ===============================================
             RECOMMENDATION
-        ================================================== */}
+        ================================================ */}
 
-        {product.comparison_summary && (
+        {
 
-          <section className="bg-accent/60 border border-border rounded-xl p-5 mt-8">
+          product.comparison_summary && (
 
-            <div className="flex items-center gap-2">
+            <section className="
+              bg-accent/60
+              border
+              border-border
+              rounded-xl
+              p-5
+              mt-8
+            ">
 
-              <Trophy
-                size={20}
-                className="text-primary"
-              />
+              <div className="
+                flex
+                items-center
+                gap-2
+              ">
 
-              <h2 className="font-bold text-foreground">
+                <Trophy
+                  size={20}
+                  className="text-primary"
+                />
 
-                Mol Bhao Recommendation
+                <h2 className="
+                  font-bold
+                  text-foreground
+                ">
 
-              </h2>
+                  Mol Bhao Recommendation
 
-            </div>
+                </h2>
+
+              </div>
 
 
-            <p className="text-sm text-muted-foreground mt-3 leading-6">
+              <p className="
+                text-sm
+                text-muted-foreground
+                mt-3
+                leading-6
+              ">
 
-              {typeof product.comparison_summary ===
-              "string"
+                {
 
-                ? product.comparison_summary
+                  typeof product.comparison_summary ===
+                  "string"
 
-                : product.comparison_summary.summary}
+                    ? product.comparison_summary
 
-            </p>
+                    : product.comparison_summary.summary
 
-          </section>
+                }
 
-        )}
+              </p>
+
+            </section>
+
+          )
+
+        }
 
 
       </div>

@@ -19,6 +19,7 @@ import {
   Camera,
   Loader2,
   LogOut,
+  Heart,
 } from "lucide-react";
 
 import {
@@ -188,6 +189,7 @@ const Navbar = () => {
     setSearchQuery,
     setSelectedCategory,
     cart,
+    wishlist,
     location,
   } = useStore();
 
@@ -704,6 +706,14 @@ const Navbar = () => {
         item.quantity,
       0
     );
+
+
+  /* =====================================================
+     WISHLIST COUNT
+  ===================================================== */
+
+  const wishlistCount =
+    wishlist.length;
 
 
   /* =====================================================
@@ -1287,24 +1297,73 @@ const Navbar = () => {
 
                       {/* WISHLIST */}
 
-                      <button
-                        type="button"
+                      <Link
+                        to="/wishlist"
+                        onClick={() =>
+                          setAccountOpen(
+                            false
+                          )
+                        }
                         className="
-                          w-full
-                          text-left
+                          flex
+                          items-center
+                          justify-between
                           px-3
                           py-3
                           rounded-lg
                           text-sm
-                          text-slate-700
-                          dark:text-slate-200
+                          font-medium
+                          text-slate-800
+                          dark:text-slate-100
                           hover:bg-slate-100
                           dark:hover:bg-slate-800
                           transition-colors
                         "
                       >
-                        ❤️ Wishlist
-                      </button>
+
+                        <span
+                          className="
+                            flex
+                            items-center
+                            gap-2
+                          "
+                        >
+                          <Heart
+                            size={17}
+                            className="
+                              text-red-500
+                            "
+                          />
+
+                          Wishlist
+                        </span>
+
+
+                        {
+                          wishlistCount > 0 && (
+
+                            <span
+                              className="
+                                min-w-[22px]
+                                h-[22px]
+                                px-1.5
+                                rounded-full
+                                bg-red-500
+                                text-white
+                                text-[11px]
+                                font-bold
+                                flex
+                                items-center
+                                justify-center
+                              "
+                            >
+                              {wishlistCount}
+                            </span>
+
+                          )
+                        }
+
+                      </Link>
 
 
                       {/* ORDERS */}

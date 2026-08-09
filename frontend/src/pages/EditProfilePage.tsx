@@ -1,18 +1,20 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
+
 import {
+  ArrowLeft,
   User,
   Mail,
   Phone,
   MapPin,
   Home,
-  Plus,
-  Trash2,
-  ArrowLeft,
-  Check,
+  Save,
+  Loader2,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   Link,
@@ -20,164 +22,446 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "@/context/AuthContext";
-
-
-interface Address {
-  id: number;
-  label: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
+import { supabase } from "@/lib/supabase";
 
 
 const EditProfilePage = () => {
 
-  const navigate = useNavigate();
+  /* ==========================================
+     AUTH
+  ========================================== */
 
-  const { user } = useAuth();
-
-
-  const [name, setName] =
-    useState(
-      user?.user_metadata?.full_name || ""
-    );
+  const {
+    user,
+  } = useAuth();
 
 
-  const [phone, setPhone] =
-    useState(
-      user?.user_metadata?.phone || ""
-    );
+  /* ==========================================
+     NAVIGATION
+  ========================================== */
+
+  const navigate =
+    useNavigate();
 
 
-  const [addresses, setAddresses] =
-    useState<Address[]>([
-      {
-        id: 1,
-        label: "Home",
-        address: "",
-        city: "",
-        state: "",
-        pincode: "",
-      },
-    ]);
+  /* ==========================================
+     USER DETAILS
+  ========================================== */
+
+  const email =
+    user?.email || "";
 
 
-  const [preferredAddressId, setPreferredAddressId] =
-    useState(1);
+  /* ==========================================
+     FORM STATES
+  ========================================== */
+
+  const [
+    fullName,
+    setFullName,
+  ] = useState("");
 
 
-  const addAddress = () => {
+  const [
+    phone,
+    setPhone,
+  ] = useState("");
 
-    const newAddress: Address = {
-      id: Date.now(),
-      label: "Address",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
+
+  const [
+    address,
+    setAddress,
+  ] = useState("");
+
+
+  const [
+    city,
+    setCity,
+  ] = useState("");
+
+
+  const [
+    state,
+    setState,
+  ] = useState("");
+
+
+  const [
+    pincode,
+    setPincode,
+  ] = useState("");
+
+
+  const [
+    preferredAddress,
+    setPreferredAddress,
+  ] = useState("Home");
+
+
+  /* ==========================================
+     LOADING STATES
+  ========================================== */
+
+  const [
+    isLoadingProfile,
+    setIsLoadingProfile,
+  ] = useState(true);
+
+
+  const [
+    isSaving,
+    setIsSaving,
+  ] = useState(false);
+
+
+  /* ==========================================
+     LOAD PROFILE FROM SUPABASE
+  ========================================== */
+
+  useEffect(() => {
+
+    const loadProfile =
+      async () => {
+
+        if (!user) {
+
+          setIsLoadingProfile(
+            false
+          );
+
+          return;
+
+        }
+
+
+        try {
+
+          const {
+            data,
+            error,
+          } =
+            await supabase
+              .from("profiles")
+              .select(`
+                full_name,
+                phone,
+                address,
+                city,
+                state,
+                pincode,
+                preferred_address
+              `)
+              .eq(
+                "id",
+                user.id
+              )
+              .maybeSingle();
+
+
+          if (error) {
+
+            throw error;
+
+          }
+
+
+          /* ==========================================
+             IF PROFILE ALREADY EXISTS
+          ========================================== */
+
+          if (data) {
+
+            setFullName(
+              data.full_name || ""
+            );
+
+            setPhone(
+              data.phone || ""
+            );
+
+            setAddress(
+              data.address || ""
+            );
+
+            setCity(
+              data.city || ""
+            );
+
+            setState(
+              data.state || ""
+            );
+
+            setPincode(
+              data.pincode || ""
+            );
+
+            setPreferredAddress(
+              data.preferred_address ||
+              "Home"
+            );
+
+          }
+
+
+          /* ==========================================
+             IF PROFILE DOES NOT EXIST
+             USE AUTH METADATA AS DEFAULT
+          ========================================== */
+
+          else {
+
+            setFullName(
+              user.user_metadata?.full_name ||
+              ""
+            );
+
+            setPhone(
+              user.user_metadata?.phone ||
+              ""
+            );
+
+          }
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "Error loading profile:",
+            error
+          );
+
+          alert(
+            "Could not load your profile."
+          );
+
+        }
+
+        finally {
+
+          setIsLoadingProfile(
+            false
+          );
+
+        }
+
+      };
+
+
+    loadProfile();
+
+  }, [
+    user,
+  ]);
+
+
+  /* ==========================================
+     SAVE PROFILE TO SUPABASE
+  ========================================== */
+
+  const handleSave =
+    async () => {
+
+      if (!user) {
+
+        alert(
+          "You must be signed in to save your profile."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        !fullName.trim()
+      ) {
+
+        alert(
+          "Please enter your full name."
+        );
+
+        return;
+
+      }
+
+
+      try {
+
+        setIsSaving(
+          true
+        );
+
+
+        const {
+          error,
+        } =
+          await supabase
+            .from("profiles")
+            .upsert(
+              {
+                id:
+                  user.id,
+
+                full_name:
+                  fullName.trim(),
+
+                phone:
+                  phone.trim(),
+
+                address:
+                  address.trim(),
+
+                city:
+                  city.trim(),
+
+                state:
+                  state.trim(),
+
+                pincode:
+                  pincode.trim(),
+
+                preferred_address:
+                  preferredAddress,
+
+                updated_at:
+                  new Date()
+                    .toISOString(),
+              },
+              {
+                onConflict:
+                  "id",
+              }
+            );
+
+
+        if (error) {
+
+          throw error;
+
+        }
+
+
+        /* ==========================================
+           ALSO UPDATE AUTH METADATA
+        ========================================== */
+
+        const {
+          error:
+            authError,
+        } =
+          await supabase.auth.updateUser(
+            {
+              data: {
+                full_name:
+                  fullName.trim(),
+
+                phone:
+                  phone.trim(),
+              },
+            }
+          );
+
+
+        if (authError) {
+
+          console.error(
+            "Auth metadata update error:",
+            authError
+          );
+
+        }
+
+
+        alert(
+          "Profile saved successfully!"
+        );
+
+
+        navigate(
+          "/profile"
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Error saving profile:",
+          error
+        );
+
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to save profile."
+        );
+
+      }
+
+      finally {
+
+        setIsSaving(
+          false
+        );
+
+      }
+
     };
 
 
-    setAddresses(
-      [
-        ...addresses,
-        newAddress,
-      ]
+  /* ==========================================
+     PROFILE LOADING SCREEN
+  ========================================== */
+
+  if (
+    isLoadingProfile
+  ) {
+
+    return (
+
+      <div
+        className="
+          min-h-[60vh]
+          flex
+          items-center
+          justify-center
+        "
+      >
+
+        <div
+          className="
+            flex
+            flex-col
+            items-center
+            gap-4
+          "
+        >
+
+          <Loader2
+            size={36}
+            className="
+              animate-spin
+              text-primary
+            "
+          />
+
+          <p
+            className="
+              text-muted-foreground
+            "
+          >
+            Loading your profile...
+          </p>
+
+        </div>
+
+      </div>
+
     );
 
-  };
-
-
-  const removeAddress = (
-    id: number
-  ) => {
-
-    if (
-      addresses.length === 1
-    ) {
-      return;
-    }
-
-
-    const updatedAddresses =
-      addresses.filter(
-        (address) =>
-          address.id !== id
-      );
-
-
-    setAddresses(
-      updatedAddresses
-    );
-
-
-    if (
-      preferredAddressId === id
-    ) {
-
-      setPreferredAddressId(
-        updatedAddresses[0].id
-      );
-
-    }
-
-  };
-
-
-  const updateAddress = (
-    id: number,
-    field: keyof Address,
-    value: string
-  ) => {
-
-    setAddresses(
-      addresses.map(
-        (address) =>
-          address.id === id
-            ? {
-                ...address,
-                [field]: value,
-              }
-            : address
-      )
-    );
-
-  };
-
-
-  const handleSave = async () => {
-
-    console.log(
-      "Profile data:",
-      {
-        name,
-        email: user?.email,
-        phone,
-        addresses,
-        preferredAddressId,
-      }
-    );
-
-
-    /*
-      NEXT STEP:
-      Yahan hum ye data
-      Supabase database me save karenge.
-    */
-
-
-    alert(
-      "Profile saved successfully!"
-    );
-
-
-    navigate(
-      "/profile"
-    );
-
-  };
+  }
 
 
   return (
@@ -194,72 +478,74 @@ const EditProfilePage = () => {
       className="
         max-w-3xl
         mx-auto
-        py-6
-        space-y-8
+        px-4
+        py-8
       "
     >
 
 
-      {/* ============================
-          HEADER
-      ============================ */}
+      {/* ==========================================
+          BACK BUTTON
+      ========================================== */}
 
-      <div
+      <Link
+        to="/profile"
         className="
-          flex
+          inline-flex
           items-center
-          gap-4
+          gap-2
+          text-sm
+          font-medium
+          text-muted-foreground
+          hover:text-primary
+          transition-colors
+          mb-6
         "
       >
 
-        <Link
-          to="/profile"
+        <ArrowLeft
+          size={18}
+        />
+
+        Back to Profile
+
+      </Link>
+
+
+      {/* ==========================================
+          PAGE HEADER
+      ========================================== */}
+
+      <div
+        className="
+          mb-8
+        "
+      >
+
+        <h1
           className="
-            p-2
-            rounded-xl
-            border
-            hover:bg-muted
-            transition
+            text-3xl
+            font-bold
           "
         >
+          Edit Profile
+        </h1>
 
-          <ArrowLeft size={22} />
-
-        </Link>
-
-
-        <div>
-
-          <h1
-            className="
-              text-2xl
-              sm:text-3xl
-              font-bold
-            "
-          >
-            Edit Profile
-          </h1>
-
-
-          <p
-            className="
-              text-sm
-              text-muted-foreground
-              mt-1
-            "
-          >
-            Manage your personal information and delivery addresses
-          </p>
-
-        </div>
+        <p
+          className="
+            text-muted-foreground
+            mt-2
+          "
+        >
+          Manage your personal information and delivery details.
+        </p>
 
       </div>
 
 
-
-      {/* ============================
+      {/* ==========================================
           PERSONAL INFORMATION
-      ============================ */}
+      ========================================== */}
 
       <div
         className="
@@ -268,7 +554,8 @@ const EditProfilePage = () => {
           rounded-2xl
           p-5
           sm:p-6
-          space-y-5
+          mb-6
+          shadow-sm
         "
       >
 
@@ -276,662 +563,649 @@ const EditProfilePage = () => {
           className="
             flex
             items-center
-            gap-2
+            gap-3
+            mb-6
           "
         >
 
-          <User
-            size={21}
+          <div
             className="
+              w-10
+              h-10
+              rounded-xl
+              bg-primary/10
               text-primary
-            "
-          />
-
-          <h2
-            className="
-              text-lg
-              font-bold
-            "
-          >
-            Personal Information
-          </h2>
-
-        </div>
-
-
-
-        {/* NAME */}
-
-        <div>
-
-          <label
-            className="
-              text-sm
-              font-medium
-              mb-2
-              block
-            "
-          >
-            Full Name
-          </label>
-
-
-          <div
-            className="
-              relative
-            "
-          >
-
-            <User
-              size={19}
-              className="
-                absolute
-                left-3
-                top-1/2
-                -translate-y-1/2
-                text-muted-foreground
-              "
-            />
-
-
-            <input
-              type="text"
-              value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value
-                )
-              }
-              placeholder="Enter your full name"
-              className="
-                w-full
-                h-12
-                pl-11
-                pr-4
-                rounded-xl
-                border
-                bg-background
-                outline-none
-                focus:ring-2
-                focus:ring-primary/30
-                focus:border-primary
-              "
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {/* EMAIL */}
-
-        <div>
-
-          <label
-            className="
-              text-sm
-              font-medium
-              mb-2
-              block
-            "
-          >
-            Email Address
-          </label>
-
-
-          <div
-            className="
-              relative
-            "
-          >
-
-            <Mail
-              size={19}
-              className="
-                absolute
-                left-3
-                top-1/2
-                -translate-y-1/2
-                text-muted-foreground
-              "
-            />
-
-
-            <input
-              type="email"
-              value={
-                user?.email || ""
-              }
-              disabled
-              className="
-                w-full
-                h-12
-                pl-11
-                pr-4
-                rounded-xl
-                border
-                bg-muted
-                text-muted-foreground
-                cursor-not-allowed
-              "
-            />
-
-          </div>
-
-
-          <p
-            className="
-              text-xs
-              text-muted-foreground
-              mt-2
-            "
-          >
-            Email is linked to your account.
-          </p>
-
-        </div>
-
-
-
-        {/* PHONE */}
-
-        <div>
-
-          <label
-            className="
-              text-sm
-              font-medium
-              mb-2
-              block
-            "
-          >
-            Phone Number
-          </label>
-
-
-          <div
-            className="
-              relative
-            "
-          >
-
-            <Phone
-              size={19}
-              className="
-                absolute
-                left-3
-                top-1/2
-                -translate-y-1/2
-                text-muted-foreground
-              "
-            />
-
-
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) =>
-                setPhone(
-                  e.target.value
-                )
-              }
-              placeholder="Enter your phone number"
-              className="
-                w-full
-                h-12
-                pl-11
-                pr-4
-                rounded-xl
-                border
-                bg-background
-                outline-none
-                focus:ring-2
-                focus:ring-primary/30
-                focus:border-primary
-              "
-            />
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-
-      {/* ============================
-          ADDRESSES
-      ============================ */}
-
-      <div
-        className="
-          bg-card
-          border
-          rounded-2xl
-          p-5
-          sm:p-6
-          space-y-6
-        "
-      >
-
-        <div
-          className="
-            flex
-            items-center
-            justify-between
-            gap-4
-          "
-        >
-
-          <div
-            className="
               flex
               items-center
-              gap-2
+              justify-center
             "
           >
 
-            <MapPin
-              size={21}
-              className="
-                text-primary
-              "
-            />
+            <User size={20} />
+
+          </div>
+
+
+          <div>
 
             <h2
               className="
                 text-lg
-                font-bold
+                font-semibold
               "
             >
-              Delivery Addresses
+              Personal Information
             </h2>
 
+            <p
+              className="
+                text-sm
+                text-muted-foreground
+              "
+            >
+              Update your basic account details.
+            </p>
+
           </div>
-
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={
-              addAddress
-            }
-            className="
-              gap-2
-            "
-          >
-
-            <Plus size={18} />
-
-            Add Address
-
-          </Button>
 
         </div>
 
 
-
-        {/* ============================
-            ADDRESS LIST
-        ============================ */}
-
-        {
-          addresses.map(
-            (address, index) => (
-
-              <div
-                key={address.id}
-                className="
-                  border
-                  rounded-2xl
-                  p-4
-                  sm:p-5
-                  space-y-4
-                "
-              >
-
-
-                {/* ADDRESS HEADER */}
-
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    gap-3
-                  "
-                >
-
-                  <div
-                    className="
-                      flex
-                      items-center
-                      gap-2
-                    "
-                  >
-
-                    <Home
-                      size={19}
-                      className="
-                        text-primary
-                      "
-                    />
-
-                    <h3
-                      className="
-                        font-semibold
-                      "
-                    >
-                      Address {index + 1}
-                    </h3>
-
-                  </div>
-
-
-                  {
-                    addresses.length > 1 && (
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeAddress(
-                            address.id
-                          )
-                        }
-                        className="
-                          p-2
-                          text-destructive
-                          hover:bg-destructive/10
-                          rounded-lg
-                          transition
-                        "
-                      >
-
-                        <Trash2
-                          size={19}
-                        />
-
-                      </button>
-
-                    )
-                  }
-
-                </div>
-
-
-
-                {/* ADDRESS LABEL */}
-
-                <input
-                  type="text"
-                  value={
-                    address.label
-                  }
-                  onChange={(e) =>
-                    updateAddress(
-                      address.id,
-                      "label",
-                      e.target.value
-                    )
-                  }
-                  placeholder="Address name (Home, Work, etc.)"
-                  className="
-                    w-full
-                    h-11
-                    px-4
-                    rounded-xl
-                    border
-                    bg-background
-                    outline-none
-                    focus:ring-2
-                    focus:ring-primary/30
-                  "
-                />
-
-
-
-                {/* FULL ADDRESS */}
-
-                <textarea
-                  value={
-                    address.address
-                  }
-                  onChange={(e) =>
-                    updateAddress(
-                      address.id,
-                      "address",
-                      e.target.value
-                    )
-                  }
-                  placeholder="House / Flat No., Street, Area"
-                  rows={3}
-                  className="
-                    w-full
-                    p-4
-                    rounded-xl
-                    border
-                    bg-background
-                    outline-none
-                    resize-none
-                    focus:ring-2
-                    focus:ring-primary/30
-                  "
-                />
-
-
-
-                {/* CITY + STATE */}
-
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    sm:grid-cols-2
-                    gap-4
-                  "
-                >
-
-                  <input
-                    type="text"
-                    value={
-                      address.city
-                    }
-                    onChange={(e) =>
-                      updateAddress(
-                        address.id,
-                        "city",
-                        e.target.value
-                      )
-                    }
-                    placeholder="City"
-                    className="
-                      h-11
-                      px-4
-                      rounded-xl
-                      border
-                      bg-background
-                      outline-none
-                      focus:ring-2
-                      focus:ring-primary/30
-                    "
-                  />
-
-
-                  <input
-                    type="text"
-                    value={
-                      address.state
-                    }
-                    onChange={(e) =>
-                      updateAddress(
-                        address.id,
-                        "state",
-                        e.target.value
-                      )
-                    }
-                    placeholder="State"
-                    className="
-                      h-11
-                      px-4
-                      rounded-xl
-                      border
-                      bg-background
-                      outline-none
-                      focus:ring-2
-                      focus:ring-primary/30
-                    "
-                  />
-
-                </div>
-
-
-
-                {/* PINCODE */}
-
-                <input
-                  type="text"
-                  value={
-                    address.pincode
-                  }
-                  onChange={(e) =>
-                    updateAddress(
-                      address.id,
-                      "pincode",
-                      e.target.value
-                    )
-                  }
-                  placeholder="PIN Code"
-                  className="
-                    w-full
-                    h-11
-                    px-4
-                    rounded-xl
-                    border
-                    bg-background
-                    outline-none
-                    focus:ring-2
-                    focus:ring-primary/30
-                  "
-                />
-
-
-
-                {/* PREFERRED ADDRESS */}
-
-                <label
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                    cursor-pointer
-                    p-3
-                    rounded-xl
-                    border
-                    hover:bg-muted/50
-                    transition
-                  "
-                >
-
-                  <input
-                    type="radio"
-                    name="preferredAddress"
-                    checked={
-                      preferredAddressId ===
-                      address.id
-                    }
-                    onChange={() =>
-                      setPreferredAddressId(
-                        address.id
-                      )
-                    }
-                    className="
-                      w-4
-                      h-4
-                      accent-primary
-                    "
-                  />
-
-
-                  <div>
-
-                    <p
-                      className="
-                        font-medium
-                        text-sm
-                      "
-                    >
-                      Preferred Delivery Address
-                    </p>
-
-                    <p
-                      className="
-                        text-xs
-                        text-muted-foreground
-                      "
-                    >
-                      Use this address as default
-                    </p>
-
-                  </div>
-
-                </label>
-
-              </div>
-
-            )
-          )
-        }
-
-      </div>
-
-
-
-      {/* ============================
-          SAVE BUTTON
-      ============================ */}
-
-      <div
-        className="
-          flex
-          justify-end
-          gap-3
-          pb-8
-        "
-      >
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() =>
-            navigate(
-              "/profile"
-            )
-          }
-        >
-          Cancel
-        </Button>
-
-
-        <Button
-          type="button"
-          onClick={
-            handleSave
-          }
+        <div
           className="
-            gap-2
+            space-y-5
           "
         >
 
-          <Check
-            size={18}
-          />
 
-          Save Changes
+          {/* FULL NAME */}
 
-        </Button>
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              "
+            >
+              Full Name
+            </label>
+
+            <div
+              className="
+                relative
+              "
+            >
+
+              <User
+                size={18}
+                className="
+                  absolute
+                  left-3
+                  top-1/2
+                  -translate-y-1/2
+                  text-muted-foreground
+                "
+              />
+
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) =>
+                  setFullName(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter your full name"
+                className="
+                  w-full
+                  h-12
+                  pl-11
+                  pr-4
+                  rounded-xl
+                  border
+                  bg-background
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/30
+                  focus:border-primary
+                "
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* EMAIL */}
+
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              "
+            >
+              Email Address
+            </label>
+
+            <div
+              className="
+                relative
+              "
+            >
+
+              <Mail
+                size={18}
+                className="
+                  absolute
+                  left-3
+                  top-1/2
+                  -translate-y-1/2
+                  text-muted-foreground
+                "
+              />
+
+              <input
+                type="email"
+                value={email}
+                disabled
+                className="
+                  w-full
+                  h-12
+                  pl-11
+                  pr-4
+                  rounded-xl
+                  border
+                  bg-muted
+                  text-muted-foreground
+                  cursor-not-allowed
+                "
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* PHONE */}
+
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              "
+            >
+              Phone Number
+            </label>
+
+            <div
+              className="
+                relative
+              "
+            >
+
+              <Phone
+                size={18}
+                className="
+                  absolute
+                  left-3
+                  top-1/2
+                  -translate-y-1/2
+                  text-muted-foreground
+                "
+              />
+
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) =>
+                  setPhone(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter your phone number"
+                className="
+                  w-full
+                  h-12
+                  pl-11
+                  pr-4
+                  rounded-xl
+                  border
+                  bg-background
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/30
+                  focus:border-primary
+                "
+              />
+
+            </div>
+
+          </div>
+
+        </div>
 
       </div>
+
+
+      {/* ==========================================
+          ADDRESS INFORMATION
+      ========================================== */}
+
+      <div
+        className="
+          bg-card
+          border
+          rounded-2xl
+          p-5
+          sm:p-6
+          mb-6
+          shadow-sm
+        "
+      >
+
+        <div
+          className="
+            flex
+            items-center
+            gap-3
+            mb-6
+          "
+        >
+
+          <div
+            className="
+              w-10
+              h-10
+              rounded-xl
+              bg-primary/10
+              text-primary
+              flex
+              items-center
+              justify-center
+            "
+          >
+
+            <MapPin size={20} />
+
+          </div>
+
+          <div>
+
+            <h2
+              className="
+                text-lg
+                font-semibold
+              "
+            >
+              Delivery Address
+            </h2>
+
+            <p
+              className="
+                text-sm
+                text-muted-foreground
+              "
+            >
+              Add the address you prefer for deliveries.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          className="
+            space-y-5
+          "
+        >
+
+
+          {/* ADDRESS */}
+
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              "
+            >
+              Complete Address
+            </label>
+
+            <textarea
+              value={address}
+              onChange={(e) =>
+                setAddress(
+                  e.target.value
+                )
+              }
+              placeholder="House number, street, locality..."
+              rows={3}
+              className="
+                w-full
+                p-4
+                rounded-xl
+                border
+                bg-background
+                resize-none
+                focus:outline-none
+                focus:ring-2
+                focus:ring-primary/30
+                focus:border-primary
+              "
+            />
+
+          </div>
+
+
+          {/* CITY + STATE */}
+
+          <div
+            className="
+              grid
+              grid-cols-1
+              sm:grid-cols-2
+              gap-5
+            "
+          >
+
+            <div>
+
+              <label
+                className="
+                  block
+                  text-sm
+                  font-medium
+                  mb-2
+                "
+              >
+                City
+              </label>
+
+              <input
+                type="text"
+                value={city}
+                onChange={(e) =>
+                  setCity(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter city"
+                className="
+                  w-full
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  bg-background
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/30
+                  focus:border-primary
+                "
+              />
+
+            </div>
+
+
+            <div>
+
+              <label
+                className="
+                  block
+                  text-sm
+                  font-medium
+                  mb-2
+                "
+              >
+                State
+              </label>
+
+              <input
+                type="text"
+                value={state}
+                onChange={(e) =>
+                  setState(
+                    e.target.value
+                  )
+                }
+                placeholder="Enter state"
+                className="
+                  w-full
+                  h-12
+                  px-4
+                  rounded-xl
+                  border
+                  bg-background
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-primary/30
+                  focus:border-primary
+                "
+              />
+
+            </div>
+
+          </div>
+
+
+          {/* PINCODE */}
+
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              "
+            >
+              PIN Code
+            </label>
+
+            <input
+              type="text"
+              value={pincode}
+              onChange={(e) =>
+                setPincode(
+                  e.target.value
+                )
+              }
+              placeholder="Enter PIN code"
+              maxLength={6}
+              className="
+                w-full
+                h-12
+                px-4
+                rounded-xl
+                border
+                bg-background
+                focus:outline-none
+                focus:ring-2
+                focus:ring-primary/30
+                focus:border-primary
+              "
+            />
+
+          </div>
+
+
+          {/* PREFERRED ADDRESS */}
+
+          <div>
+
+            <label
+              className="
+                block
+                text-sm
+                font-medium
+                mb-3
+              "
+            >
+              Preferred Address Type
+            </label>
+
+
+            <div
+              className="
+                grid
+                grid-cols-2
+                gap-4
+              "
+            >
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPreferredAddress(
+                    "Home"
+                  )
+                }
+                className={`
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  h-12
+                  rounded-xl
+                  border
+                  font-medium
+                  transition-all
+                  ${
+                    preferredAddress === "Home"
+                      ? `
+                        border-primary
+                        bg-primary/10
+                        text-primary
+                      `
+                      : `
+                        hover:bg-muted
+                      `
+                  }
+                `}
+              >
+
+                <Home size={18} />
+
+                Home
+
+              </button>
+
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPreferredAddress(
+                    "Other"
+                  )
+                }
+                className={`
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  h-12
+                  rounded-xl
+                  border
+                  font-medium
+                  transition-all
+                  ${
+                    preferredAddress === "Other"
+                      ? `
+                        border-primary
+                        bg-primary/10
+                        text-primary
+                      `
+                      : `
+                        hover:bg-muted
+                      `
+                  }
+                `}
+              >
+
+                <MapPin size={18} />
+
+                Other
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ==========================================
+          SAVE BUTTON
+      ========================================== */}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isSaving}
+        className="
+          w-full
+          h-14
+          rounded-xl
+          bg-primary
+          text-primary-foreground
+          font-semibold
+          flex
+          items-center
+          justify-center
+          gap-2
+          hover:opacity-90
+          transition-opacity
+          disabled:opacity-60
+          disabled:cursor-not-allowed
+        "
+      >
+
+        {
+          isSaving
+
+            ? (
+              <>
+                <Loader2
+                  size={20}
+                  className="
+                    animate-spin
+                  "
+                />
+
+                Saving Profile...
+              </>
+            )
+
+            : (
+              <>
+                <Save size={20} />
+
+                Save Changes
+              </>
+            )
+        }
+
+      </button>
 
     </motion.div>
 

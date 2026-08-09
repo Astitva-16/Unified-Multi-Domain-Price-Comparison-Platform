@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product } from "@/data/mockData";
 
-
 /* =====================================================
    CART ITEM
 ===================================================== */
@@ -15,13 +14,19 @@ export interface CartItem {
   platformUrl?: string;
 }
 
+/* =====================================================
+   WISHLIST ITEM
+===================================================== */
+
+export interface WishlistItem {
+  product: Product;
+}
 
 /* =====================================================
    APP STATE
 ===================================================== */
 
 interface AppState {
-
   /* -----------------------------
      Existing state
   ----------------------------- */
@@ -34,13 +39,17 @@ interface AppState {
 
   location: string;
 
-
   /* -----------------------------
      Cart state
   ----------------------------- */
 
   cart: CartItem[];
 
+  /* -----------------------------
+     Wishlist state
+  ----------------------------- */
+
+  wishlist: WishlistItem[];
 
   /* -----------------------------
      Existing actions
@@ -60,17 +69,16 @@ interface AppState {
     location: string
   ) => void;
 
-
   /* -----------------------------
      Cart actions
   ----------------------------- */
 
   addToCart: (
-  product: Product,
-  platform: string,
-  price: number,
-  platformUrl?: string
-) => void;
+    product: Product,
+    platform: string,
+    price: number,
+    platformUrl?: string
+  ) => void;
 
   removeFromCart: (
     productId: string,
@@ -84,8 +92,27 @@ interface AppState {
   ) => void;
 
   clearCart: () => void;
-}
 
+  /* -----------------------------
+     Wishlist actions
+  ----------------------------- */
+
+  addToWishlist: (
+    product: Product
+  ) => void;
+
+  removeFromWishlist: (
+    productId: string
+  ) => void;
+
+  toggleWishlist: (
+    product: Product
+  ) => void;
+
+  isInWishlist: (
+    productId: string
+  ) => boolean;
+}
 
 /* =====================================================
    STORE
@@ -93,7 +120,7 @@ interface AppState {
 
 export const useStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
 
       /* =================================================
          EXISTING STATE
@@ -107,13 +134,17 @@ export const useStore = create<AppState>()(
 
       location: "",
 
-
       /* =================================================
          CART
       ================================================= */
 
       cart: [],
 
+      /* =================================================
+         WISHLIST
+      ================================================= */
+
+      wishlist: [],
 
       /* =================================================
          EXISTING ACTIONS
@@ -124,12 +155,10 @@ export const useStore = create<AppState>()(
           selectedCategory: cat,
         }),
 
-
       setSearchQuery: (q) =>
         set({
           searchQuery: q,
         }),
-
 
       /* =================================================
          LOCATION
@@ -139,7 +168,6 @@ export const useStore = create<AppState>()(
         set({
           location,
         }),
-
 
       /* =================================================
          DARK MODE
@@ -162,7 +190,6 @@ export const useStore = create<AppState>()(
 
         }),
 
-
       /* =================================================
          ADD TO CART
       ================================================= */
@@ -175,24 +202,12 @@ export const useStore = create<AppState>()(
       ) =>
         set((state) => {
 
-          /*
-            Check whether the same product
-            from the same platform already exists.
-          */
-
           const existingItem =
             state.cart.find(
               (item) =>
-                item.product.id ===
-                  product.id &&
-                item.platform ===
-                  platform
+                item.product.id === product.id &&
+                item.platform === platform
             );
-
-
-          /* ---------------------------------------------
-             Already exists → increase quantity
-          --------------------------------------------- */
 
           if (existingItem) {
 
@@ -201,10 +216,8 @@ export const useStore = create<AppState>()(
               cart: state.cart.map(
                 (item) =>
 
-                  item.product.id ===
-                    product.id &&
-                  item.platform ===
-                    platform
+                  item.product.id === product.id &&
+                  item.platform === platform
 
                     ? {
                         ...item,
@@ -218,11 +231,6 @@ export const useStore = create<AppState>()(
             };
 
           }
-
-
-          /* ---------------------------------------------
-             New item
-          --------------------------------------------- */
 
           return {
 
@@ -244,7 +252,6 @@ export const useStore = create<AppState>()(
 
         }),
 
-
       /* =================================================
          REMOVE FROM CART
       ================================================= */
@@ -259,16 +266,13 @@ export const useStore = create<AppState>()(
             (item) =>
 
               !(
-                item.product.id ===
-                  productId &&
-                item.platform ===
-                  platform
+                item.product.id === productId &&
+                item.platform === platform
               )
 
           ),
 
         })),
-
 
       /* =================================================
          UPDATE CART QUANTITY
@@ -281,11 +285,6 @@ export const useStore = create<AppState>()(
       ) =>
         set((state) => {
 
-          /*
-            If quantity becomes 0,
-            remove the item.
-          */
-
           if (quantity <= 0) {
 
             return {
@@ -294,10 +293,8 @@ export const useStore = create<AppState>()(
                 (item) =>
 
                   !(
-                    item.product.id ===
-                      productId &&
-                    item.platform ===
-                      platform
+                    item.product.id === productId &&
+                    item.platform === platform
                   )
 
               ),
@@ -306,16 +303,13 @@ export const useStore = create<AppState>()(
 
           }
 
-
           return {
 
             cart: state.cart.map(
               (item) =>
 
-                item.product.id ===
-                  productId &&
-                item.platform ===
-                  platform
+                item.product.id === productId &&
+                item.platform === platform
 
                   ? {
                       ...item,
@@ -330,7 +324,6 @@ export const useStore = create<AppState>()(
 
         }),
 
-
       /* =================================================
          CLEAR CART
       ================================================= */
@@ -340,8 +333,120 @@ export const useStore = create<AppState>()(
           cart: [],
         }),
 
-    }),
+      /* =================================================
+         ADD TO WISHLIST
+      ================================================= */
 
+      addToWishlist: (
+        product
+      ) =>
+        set((state) => {
+
+          const alreadyExists =
+            state.wishlist.some(
+              (item) =>
+                item.product.id ===
+                product.id
+            );
+
+          if (alreadyExists) {
+            return state;
+          }
+
+          return {
+
+            wishlist: [
+              ...state.wishlist,
+              {
+                product,
+              },
+            ],
+
+          };
+
+        }),
+
+      /* =================================================
+         REMOVE FROM WISHLIST
+      ================================================= */
+
+      removeFromWishlist: (
+        productId
+      ) =>
+        set((state) => ({
+
+          wishlist:
+            state.wishlist.filter(
+              (item) =>
+                item.product.id !==
+                productId
+            ),
+
+        })),
+
+      /* =================================================
+         TOGGLE WISHLIST
+      ================================================= */
+
+      toggleWishlist: (
+        product
+      ) =>
+        set((state) => {
+
+          const alreadyExists =
+            state.wishlist.some(
+              (item) =>
+                item.product.id ===
+                product.id
+            );
+
+          if (alreadyExists) {
+
+            return {
+
+              wishlist:
+                state.wishlist.filter(
+                  (item) =>
+                    item.product.id !==
+                    product.id
+                ),
+
+            };
+
+          }
+
+          return {
+
+            wishlist: [
+              ...state.wishlist,
+              {
+                product,
+              },
+            ],
+
+          };
+
+        }),
+
+      /* =================================================
+         CHECK WISHLIST
+      ================================================= */
+
+      isInWishlist: (
+        productId
+      ) => {
+
+        return get()
+          .wishlist
+          .some(
+            (item) =>
+              item.product.id ===
+              productId
+          );
+
+      },
+
+    }),
 
     /* ===================================================
        PERSIST CONFIG
@@ -350,16 +455,15 @@ export const useStore = create<AppState>()(
     {
       name: "mol-bhao-storage",
 
-      /*
-        Only these values are saved
-        in localStorage.
-      */
-
       partialize: (state) => ({
 
         cart: state.cart,
 
-        location: state.location,
+        wishlist:
+          state.wishlist,
+
+        location:
+          state.location,
 
       }),
 

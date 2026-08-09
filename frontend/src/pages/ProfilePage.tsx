@@ -4,7 +4,6 @@ import {
   User,
   Mail,
   Bell,
-  Heart,
   Settings,
   LogOut,
   Loader2,
@@ -373,61 +372,6 @@ const ProfilePage = () => {
 
         </Link>
 
-
-        {/* ==========================================
-            WISHLIST
-        ========================================== */}
-
-        <Link
-          to="/home"
-          className="
-            flex
-            items-center
-            gap-3
-            p-4
-            rounded-xl
-            bg-card
-            border
-            hover:shadow-md
-            hover:border-primary/30
-            transition-all
-          "
-        >
-
-          <Heart
-            size={20}
-            className="
-              text-muted-foreground
-            "
-          />
-
-          <div
-            className="
-              flex-1
-            "
-          >
-
-            <span
-              className="
-                font-medium
-                block
-              "
-            >
-              Wishlist
-            </span>
-
-            <span
-              className="
-                text-xs
-                text-muted-foreground
-              "
-            >
-              View your saved products
-            </span>
-
-          </div>
-
-        </Link>
 
 
         {/* ==========================================

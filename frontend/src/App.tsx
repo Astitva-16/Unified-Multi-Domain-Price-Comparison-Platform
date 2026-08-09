@@ -31,14 +31,15 @@ import SearchResults from "@/pages/SearchResults";
 import ComparePage from "@/pages/ComparePage";
 import CategoryPage from "@/pages/CategoryPage";
 import ProfilePage from "@/pages/ProfilePage";
+import EditProfilePage from "@/pages/EditProfilePage";
 import CartPage from "@/pages/CartPage";
+import WishlistPage from "@/pages/WishlistPage";
 
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AuthPage from "@/pages/AuthPage";
 
 import NotFound from "@/pages/NotFound";
-import EditProfilePage from "@/pages/EditProfilePage";
 
 
 const queryClient = new QueryClient();
@@ -87,13 +88,11 @@ const App = () => {
 
               <Route
                 element={
-
                   <ProtectedRoute>
 
                     <Layout />
 
                   </ProtectedRoute>
-
                 }
               >
 
@@ -145,6 +144,16 @@ const App = () => {
                 <Route
                   path="/profile/edit"
                   element={<EditProfilePage />}
+                />
+
+
+                {/* =====================================
+                    WISHLIST
+                ====================================== */}
+
+                <Route
+                  path="/wishlist"
+                  element={<WishlistPage />}
                 />
 
 
