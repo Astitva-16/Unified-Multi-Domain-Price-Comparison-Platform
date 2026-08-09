@@ -1,76 +1,185 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+} from "react-router-dom";
+
+import {
+  Toaster as Sonner,
+} from "@/components/ui/sonner";
+
+import {
+  Toaster,
+} from "@/components/ui/toaster";
+
+import {
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+
+import {
+  AuthProvider,
+} from "@/context/AuthContext";
+
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Layout from "@/components/Layout";
+
 import HomeDashboard from "@/pages/HomeDashboard";
 import SearchResults from "@/pages/SearchResults";
 import ComparePage from "@/pages/ComparePage";
 import CategoryPage from "@/pages/CategoryPage";
 import ProfilePage from "@/pages/ProfilePage";
-import NotFound from "@/pages/NotFound";
 import CartPage from "@/pages/CartPage";
+
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import AuthPage from "@/pages/AuthPage";
+
+import NotFound from "@/pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
 
-      <BrowserRouter>
+const App = () => {
 
-        <Routes>
+  return (
 
-          {/* Main shopping website */}
+    <QueryClientProvider
+      client={queryClient}
+    >
 
-          <Route element={<Layout />}>
+      <TooltipProvider>
 
-            <Route path="/" element={<HomeDashboard />} />
+        <AuthProvider>
 
-            <Route path="/home" element={<HomeDashboard />} />
+          <BrowserRouter>
 
-            <Route
-              path="/search"
-              element={<SearchResults />}
-            />
+            <Routes>
 
-            <Route
-              path="/compare/:id"
-              element={<ComparePage />}
-            />
 
-            <Route
-              path="/category/:id"
-              element={<CategoryPage />}
-            />
+              {/* =========================================
+                  PUBLIC AUTH ROUTES
+              ========================================== */}
 
-            <Route
-              path="/profile"
-              element={<ProfilePage />}
-            />
+              <Route
+                path="/auth"
+                element={<AuthPage />}
+              />
 
-            <Route 
-              path="/cart" 
-              element={<CartPage />} 
-            />
+              <Route
+                path="/login"
+                element={<LoginPage />}
+              />
 
-          </Route>
+              <Route
+                path="/register"
+                element={<RegisterPage />}
+              />
 
-          <Route
-            path="*"
-            element={<NotFound />}
-          />
 
-        </Routes>
+              {/* =========================================
+                  PROTECTED SHOPPING WEBSITE
+              ========================================== */}
 
-      </BrowserRouter>
+              <Route
+                element={
 
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                  <ProtectedRoute>
+
+                    <Layout />
+
+                  </ProtectedRoute>
+
+                }
+              >
+
+
+                {/* HOME */}
+
+                <Route
+                  path="/"
+                  element={<HomeDashboard />}
+                />
+
+                <Route
+                  path="/home"
+                  element={<HomeDashboard />}
+                />
+
+
+                {/* SEARCH */}
+
+                <Route
+                  path="/search"
+                  element={<SearchResults />}
+                />
+
+
+                {/* COMPARE */}
+
+                <Route
+                  path="/compare/:id"
+                  element={<ComparePage />}
+                />
+
+
+                {/* CATEGORY */}
+
+                <Route
+                  path="/category/:id"
+                  element={<CategoryPage />}
+                />
+
+
+                {/* PROFILE */}
+
+                <Route
+                  path="/profile"
+                  element={<ProfilePage />}
+                />
+
+
+                {/* CART */}
+
+                <Route
+                  path="/cart"
+                  element={<CartPage />}
+                />
+
+              </Route>
+
+
+              {/* =========================================
+                  UNKNOWN URL
+              ========================================== */}
+
+              <Route
+                path="*"
+                element={<NotFound />}
+              />
+
+
+            </Routes>
+
+
+            <Toaster />
+
+            <Sonner />
+
+          </BrowserRouter>
+
+        </AuthProvider>
+
+      </TooltipProvider>
+
+    </QueryClientProvider>
+
+  );
+
+};
+
 
 export default App;

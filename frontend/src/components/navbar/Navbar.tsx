@@ -18,6 +18,7 @@ import {
   Mic,
   Camera,
   Loader2,
+  LogOut,
 } from "lucide-react";
 
 import {
@@ -30,6 +31,7 @@ import { categories } from "@/data/mockData";
 
 import LocationModal from "@/components/LocationModal";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
 
 
 /* =====================================================
@@ -70,9 +72,7 @@ interface SpeechRecognitionInstance {
   stop: () => void;
   abort: () => void;
 
-  onstart:
-    | (() => void)
-    | null;
+  onstart: (() => void) | null;
 
   onresult:
     | ((event: SpeechRecognitionEvent) => void)
@@ -82,9 +82,7 @@ interface SpeechRecognitionInstance {
     | ((event: SpeechRecognitionErrorEvent) => void)
     | null;
 
-  onend:
-    | (() => void)
-    | null;
+  onend: (() => void) | null;
 }
 
 interface SpeechRecognitionConstructor {
@@ -106,8 +104,18 @@ declare global {
 const Navbar = () => {
 
   /* =====================================================
+     AUTH
+  ===================================================== */
+
+  const {
+    user,
+    signOut,
+  } = useAuth();
+
+
+  /* =====================================================
      DROPDOWN STATES
-  ====================================================== */
+  ===================================================== */
 
   const [
     locationOpen,
@@ -119,15 +127,10 @@ const Navbar = () => {
     setAccountOpen,
   ] = useState(false);
 
-  const [
-    categoryOpen,
-    setCategoryOpen,
-  ] = useState(false);
-
 
   /* =====================================================
      VOICE SEARCH STATE
-  ====================================================== */
+  ===================================================== */
 
   const [
     isListening,
@@ -137,7 +140,7 @@ const Navbar = () => {
 
   /* =====================================================
      IMAGE SEARCH STATE
-  ====================================================== */
+  ===================================================== */
 
   const [
     isImageSearching,
@@ -146,8 +149,18 @@ const Navbar = () => {
 
 
   /* =====================================================
+     SIGN OUT STATE
+  ===================================================== */
+
+  const [
+    isSigningOut,
+    setIsSigningOut,
+  ] = useState(false);
+
+
+  /* =====================================================
      REFS
-  ====================================================== */
+  ===================================================== */
 
   const recognitionRef =
     useRef<SpeechRecognitionInstance | null>(
@@ -168,7 +181,7 @@ const Navbar = () => {
 
   /* =====================================================
      STORE
-  ====================================================== */
+  ===================================================== */
 
   const {
     searchQuery,
@@ -181,15 +194,28 @@ const Navbar = () => {
 
   /* =====================================================
      NAVIGATION
-  ====================================================== */
+  ===================================================== */
 
   const navigate =
     useNavigate();
 
 
   /* =====================================================
+     USER DISPLAY NAME
+  ===================================================== */
+
+  const userEmail =
+    user?.email || "";
+
+  const userName =
+    user?.user_metadata?.full_name ||
+    userEmail.split("@")[0] ||
+    "User";
+
+
+  /* =====================================================
      KEEP SEARCH QUERY REF UPDATED
-  ====================================================== */
+  ===================================================== */
 
   useEffect(() => {
 
@@ -203,7 +229,7 @@ const Navbar = () => {
 
   /* =====================================================
      CLEANUP VOICE RECOGNITION
-  ====================================================== */
+  ===================================================== */
 
   useEffect(() => {
 
@@ -224,7 +250,7 @@ const Navbar = () => {
 
   /* =====================================================
      NORMAL SEARCH
-  ====================================================== */
+  ===================================================== */
 
   const handleSearch = (
     e: React.FormEvent
@@ -250,19 +276,7 @@ const Navbar = () => {
 
   /* =====================================================
      IMAGE SEARCH
-  ====================================================== */
-
-  const handleImageButtonClick =
-    () => {
-
-      if (isImageSearching) {
-        return;
-      }
-
-      fileInputRef.current?.click();
-
-    };
-
+  ===================================================== */
 
   const handleImageSearch = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -276,9 +290,7 @@ const Navbar = () => {
     }
 
 
-    /* ---------------------------------------------
-       VALIDATE IMAGE
-    --------------------------------------------- */
+    /* Check valid image */
 
     if (
       !file.type.startsWith(
@@ -287,7 +299,7 @@ const Navbar = () => {
     ) {
 
       alert(
-        "Please select a valid image file."
+        "Please select a valid image."
       );
 
       return;
@@ -302,10 +314,6 @@ const Navbar = () => {
       );
 
 
-      /* ---------------------------------------------
-         CREATE FORM DATA
-      --------------------------------------------- */
-
       const formData =
         new FormData();
 
@@ -314,10 +322,6 @@ const Navbar = () => {
         file
       );
 
-
-      /* ---------------------------------------------
-         SEND IMAGE TO BACKEND
-      --------------------------------------------- */
 
       const response =
         await fetch(
@@ -329,10 +333,6 @@ const Navbar = () => {
         );
 
 
-      /* ---------------------------------------------
-         GET RESPONSE SAFELY
-      --------------------------------------------- */
-
       const result =
         await response.json();
 
@@ -341,15 +341,11 @@ const Navbar = () => {
 
         throw new Error(
           result.message ||
-          "Image search failed"
+          "Failed to analyze image"
         );
 
       }
 
-
-      /* ---------------------------------------------
-         GET GEMINI DETECTED QUERY
-      --------------------------------------------- */
 
       const detectedQuery =
         result.data?.searchQuery;
@@ -358,24 +354,16 @@ const Navbar = () => {
       if (!detectedQuery) {
 
         throw new Error(
-          "Could not identify the product from this image."
+          "Could not identify the product in this image."
         );
 
       }
 
 
-      /* ---------------------------------------------
-         PUT RESULT IN SEARCH BAR
-      --------------------------------------------- */
-
       setSearchQuery(
         detectedQuery
       );
 
-
-      /* ---------------------------------------------
-         NAVIGATE TO SEARCH PAGE
-      --------------------------------------------- */
 
       navigate(
         `/search?q=${encodeURIComponent(
@@ -383,36 +371,29 @@ const Navbar = () => {
         )}`
       );
 
+    }
 
-    } catch (error) {
+    catch (error) {
 
       console.error(
         "Image search error:",
         error
       );
 
-
       alert(
-
         error instanceof Error
-
           ? error.message
-
           : "Failed to search using image."
-
       );
 
-    } finally {
+    }
+
+    finally {
 
       setIsImageSearching(
         false
       );
 
-
-      /*
-        Reset input so same image can
-        also be selected again later.
-      */
 
       if (
         fileInputRef.current
@@ -430,15 +411,10 @@ const Navbar = () => {
 
   /* =====================================================
      VOICE SEARCH
-  ====================================================== */
+  ===================================================== */
 
   const handleVoiceSearch =
     () => {
-
-
-      /* ---------------------------------------------
-         STOP IF ALREADY LISTENING
-      --------------------------------------------- */
 
       if (
         isListening &&
@@ -452,18 +428,12 @@ const Navbar = () => {
       }
 
 
-      /* ---------------------------------------------
-         BROWSER SUPPORT CHECK
-      --------------------------------------------- */
-
       const SpeechRecognition =
         window.SpeechRecognition ||
         window.webkitSpeechRecognition;
 
 
-      if (
-        !SpeechRecognition
-      ) {
+      if (!SpeechRecognition) {
 
         alert(
           "Voice search is not supported in this browser. Please use Google Chrome."
@@ -474,51 +444,29 @@ const Navbar = () => {
       }
 
 
-      /* ---------------------------------------------
-         CREATE RECOGNITION
-      --------------------------------------------- */
-
       const recognition =
         new SpeechRecognition();
-
 
       recognitionRef.current =
         recognition;
 
 
-      /*
-        User continuously bol sakta hai
-      */
-
       recognition.continuous =
         true;
 
-
-      /*
-        Live typing while speaking
-      */
-
       recognition.interimResults =
         true;
-
-
-      /*
-        English recognition
-      */
 
       recognition.lang =
         "en-IN";
 
 
-      /* ---------------------------------------------
-         ON START
-      --------------------------------------------- */
-
       recognition.onstart =
         () => {
 
           finalTranscriptRef.current =
-            searchQueryRef.current.trim()
+            searchQueryRef.current
+              .trim()
               ? `${searchQueryRef.current.trim()} `
               : "";
 
@@ -529,20 +477,14 @@ const Navbar = () => {
         };
 
 
-      /* ---------------------------------------------
-         LIVE SPEECH RESULT
-      --------------------------------------------- */
-
       recognition.onresult =
         (
           event: SpeechRecognitionEvent
         ) => {
 
-          let finalText =
-            "";
+          let finalText = "";
 
-          let interimText =
-            "";
+          let interimText = "";
 
 
           for (
@@ -569,7 +511,9 @@ const Navbar = () => {
               finalText +=
                 transcript;
 
-            } else {
+            }
+
+            else {
 
               interimText +=
                 transcript;
@@ -579,23 +523,13 @@ const Navbar = () => {
           }
 
 
-          /*
-            Permanently save final words
-          */
-
-          if (
-            finalText
-          ) {
+          if (finalText) {
 
             finalTranscriptRef.current +=
               finalText;
 
           }
 
-
-          /*
-            Final + live currently speaking words
-          */
 
           const liveText =
             `${finalTranscriptRef.current}${interimText}`
@@ -612,10 +546,6 @@ const Navbar = () => {
 
         };
 
-
-      /* ---------------------------------------------
-         ERROR HANDLING
-      --------------------------------------------- */
 
       recognition.onerror =
         (
@@ -634,7 +564,7 @@ const Navbar = () => {
           ) {
 
             alert(
-              "Microphone permission was denied. Please allow microphone access."
+              "Microphone permission was denied. Please allow microphone access and try again."
             );
 
           }
@@ -659,10 +589,6 @@ const Navbar = () => {
         };
 
 
-      /* ---------------------------------------------
-         ON END
-      --------------------------------------------- */
-
       recognition.onend =
         () => {
 
@@ -673,15 +599,13 @@ const Navbar = () => {
         };
 
 
-      /* ---------------------------------------------
-         START
-      --------------------------------------------- */
-
       try {
 
         recognition.start();
 
-      } catch (error) {
+      }
+
+      catch (error) {
 
         console.error(
           "Could not start voice recognition:",
@@ -698,8 +622,58 @@ const Navbar = () => {
 
 
   /* =====================================================
+     SIGN OUT
+  ===================================================== */
+
+  const handleSignOut =
+    async () => {
+
+      try {
+
+        setIsSigningOut(
+          true
+        );
+
+        setAccountOpen(
+          false
+        );
+
+
+        await signOut();
+
+
+        navigate(
+          "/auth",
+          {
+            replace: true,
+          }
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Sign out failed:",
+          error
+        );
+
+      }
+
+      finally {
+
+        setIsSigningOut(
+          false
+        );
+
+      }
+
+    };
+
+
+  /* =====================================================
      CATEGORY CLICK
-  ====================================================== */
+  ===================================================== */
 
   const handleCategoryClick = (
     id: string
@@ -707,10 +681,6 @@ const Navbar = () => {
 
     setSelectedCategory(
       id
-    );
-
-    setCategoryOpen(
-      false
     );
 
     navigate(
@@ -722,7 +692,7 @@ const Navbar = () => {
 
   /* =====================================================
      CART COUNT
-  ====================================================== */
+  ===================================================== */
 
   const cartCount =
     cart.reduce(
@@ -738,15 +708,11 @@ const Navbar = () => {
 
   /* =====================================================
      UI
-  ====================================================== */
+  ===================================================== */
 
   return (
 
     <>
-
-      {/* =====================================================
-          NAVBAR
-      ====================================================== */}
 
       <header
         className="
@@ -766,21 +732,20 @@ const Navbar = () => {
 
         <div
           className="
-            max-w-[1500px]
+            max-w-[1800px]
             mx-auto
             px-4
+            sm:px-6
             lg:px-8
+            xl:px-10
           "
         >
 
-
-          {/* =================================================
-              MAIN NAVBAR
-          ================================================= */}
+          {/* MAIN NAVBAR */}
 
           <div
             className="
-              min-h-[76px]
+              min-h-[88px]
               flex
               items-center
               gap-3
@@ -788,17 +753,19 @@ const Navbar = () => {
             "
           >
 
-
             {/* LOGO */}
 
             <Link
               to="/home"
-              className="flex-shrink-0"
+              className="
+                flex-shrink-0
+              "
             >
 
               <span
                 className="
-                  text-3xl
+                  text-2xl
+                  sm:text-3xl
                   font-extrabold
                   tracking-tight
                 "
@@ -832,13 +799,11 @@ const Navbar = () => {
             <button
               type="button"
               onClick={() =>
-                setLocationOpen(
-                  true
-                )
+                setLocationOpen(true)
               }
               className="
                 hidden
-                lg:flex
+                xl:flex
                 items-center
                 gap-2
                 px-3
@@ -853,7 +818,7 @@ const Navbar = () => {
             >
 
               <MapPin
-                size={22}
+                size={23}
                 className="
                   text-slate-700
                   dark:text-slate-300
@@ -887,14 +852,14 @@ const Navbar = () => {
                       font-bold
                       text-slate-900
                       dark:text-slate-100
-                      max-w-[150px]
+                      max-w-[190px]
                       truncate
                     "
                   >
-
-                    {location ||
-                      "Select location"}
-
+                    {
+                      location ||
+                      "Select location"
+                    }
                   </span>
 
                   <ChevronDown
@@ -912,7 +877,7 @@ const Navbar = () => {
             </button>
 
 
-            {/* SEARCH FORM */}
+            {/* SEARCH BAR */}
 
             <form
               onSubmit={
@@ -928,195 +893,27 @@ const Navbar = () => {
                 className="
                   flex
                   items-center
-                  h-[48px]
+                  h-[56px]
                   border
-                  border-blue-500
-                  dark:border-blue-500/70
+                  border-slate-300
+                  dark:border-slate-700
                   rounded-xl
                   overflow-hidden
                   bg-white
                   dark:bg-slate-900
                   shadow-sm
+                  focus-within:border-blue-500
                   focus-within:ring-2
                   focus-within:ring-blue-500/20
                   transition-all
                 "
               >
 
-
-                {/* CATEGORY SELECTOR */}
-
-                <div
-                  className="
-                    relative
-                    hidden
-                    sm:block
-                  "
-                >
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCategoryOpen(
-                        !categoryOpen
-                      )
-                    }
-                    className="
-                      h-[46px]
-                      px-4
-                      flex
-                      items-center
-                      gap-2
-                      border-r
-                      border-slate-200
-                      dark:border-slate-700
-                      bg-slate-50
-                      dark:bg-slate-800
-                      text-sm
-                      font-medium
-                      text-slate-700
-                      dark:text-slate-200
-                      hover:bg-slate-100
-                      dark:hover:bg-slate-700
-                      transition-colors
-                    "
-                  >
-
-                    All
-
-                    <ChevronDown
-                      size={15}
-                    />
-
-                  </button>
-
-
-                  <AnimatePresence>
-
-                    {categoryOpen && (
-
-                      <motion.div
-                        initial={{
-                          opacity: 0,
-                          y: -5,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        exit={{
-                          opacity: 0,
-                          y: -5,
-                        }}
-                        className="
-                          absolute
-                          top-full
-                          left-0
-                          mt-2
-                          w-56
-                          bg-white
-                          dark:bg-slate-900
-                          rounded-xl
-                          border
-                          border-slate-200
-                          dark:border-slate-700
-                          shadow-xl
-                          dark:shadow-black/40
-                          p-2
-                          z-[60]
-                        "
-                      >
-
-                        <button
-                          type="button"
-                          onClick={() => {
-
-                            setCategoryOpen(
-                              false
-                            );
-
-                            setSelectedCategory(
-                              null
-                            );
-
-                            navigate(
-                              "/search"
-                            );
-
-                          }}
-                          className="
-                            w-full
-                            text-left
-                            px-3
-                            py-2.5
-                            rounded-lg
-                            text-sm
-                            font-medium
-                            text-slate-800
-                            dark:text-slate-100
-                            hover:bg-slate-100
-                            dark:hover:bg-slate-800
-                            transition-colors
-                          "
-                        >
-                          All Categories
-                        </button>
-
-
-                        {categories.map(
-                          (cat) => (
-
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() =>
-                                handleCategoryClick(
-                                  cat.id
-                                )
-                              }
-                              className="
-                                w-full
-                                flex
-                                items-center
-                                gap-3
-                                text-left
-                                px-3
-                                py-2.5
-                                rounded-lg
-                                text-sm
-                                text-slate-700
-                                dark:text-slate-200
-                                hover:bg-slate-100
-                                dark:hover:bg-slate-800
-                                transition-colors
-                              "
-                            >
-
-                              <span>
-                                {cat.icon}
-                              </span>
-
-                              {cat.name}
-
-                            </button>
-
-                          )
-                        )}
-
-                      </motion.div>
-
-                    )}
-
-                  </AnimatePresence>
-
-                </div>
-
-
-                {/* SEARCH INPUT */}
-
                 <input
                   type="text"
-                  value={searchQuery}
+                  value={
+                    searchQuery
+                  }
                   onChange={(e) =>
                     setSearchQuery(
                       e.target.value
@@ -1127,8 +924,9 @@ const Navbar = () => {
                     flex-1
                     min-w-0
                     h-full
-                    px-4
+                    px-5
                     text-sm
+                    sm:text-base
                     bg-transparent
                     text-slate-900
                     dark:text-slate-100
@@ -1151,15 +949,14 @@ const Navbar = () => {
                     sm:flex
                     items-center
                     justify-center
-                    w-11
+                    w-14
                     h-full
                     transition-all
                     ${
                       isListening
                         ? `
                           text-red-500
-                          bg-red-50
-                          dark:bg-red-950/40
+                          bg-red-500/10
                           animate-pulse
                         `
                         : `
@@ -1177,19 +974,17 @@ const Navbar = () => {
                   }
                 >
 
-                  <Mic
-                    size={20}
-                  />
+                  <Mic size={22} />
 
                 </button>
 
 
-                {/* IMAGE SEARCH BUTTON */}
+                {/* IMAGE SEARCH */}
 
                 <button
                   type="button"
-                  onClick={
-                    handleImageButtonClick
+                  onClick={() =>
+                    fileInputRef.current?.click()
                   }
                   disabled={
                     isImageSearching
@@ -1199,44 +994,42 @@ const Navbar = () => {
                     sm:flex
                     items-center
                     justify-center
-                    w-11
+                    w-14
                     h-full
                     text-slate-500
                     dark:text-slate-400
                     hover:text-blue-600
                     dark:hover:text-blue-400
-                    transition-colors
                     disabled:opacity-50
                     disabled:cursor-not-allowed
+                    transition-colors
                   "
-                  title={
-                    isImageSearching
-                      ? "Searching image..."
-                      : "Search by image"
-                  }
+                  title="Search by image"
                 >
 
-                  {isImageSearching ? (
+                  {
+                    isImageSearching
 
-                    <Loader2
-                      size={20}
-                      className="
-                        animate-spin
-                      "
-                    />
+                      ? (
+                        <Loader2
+                          size={22}
+                          className="
+                            animate-spin
+                          "
+                        />
+                      )
 
-                  ) : (
-
-                    <Camera
-                      size={20}
-                    />
-
-                  )}
+                      : (
+                        <Camera
+                          size={22}
+                        />
+                      )
+                  }
 
                 </button>
 
 
-                {/* HIDDEN IMAGE INPUT */}
+                {/* HIDDEN FILE INPUT */}
 
                 <input
                   ref={
@@ -1257,7 +1050,7 @@ const Navbar = () => {
                   type="submit"
                   className="
                     h-full
-                    w-14
+                    w-16
                     bg-blue-600
                     text-white
                     flex
@@ -1267,11 +1060,12 @@ const Navbar = () => {
                     dark:bg-blue-500
                     dark:hover:bg-blue-600
                     transition-colors
+                    flex-shrink-0
                   "
                 >
 
                   <Search
-                    size={22}
+                    size={25}
                   />
 
                 </button>
@@ -1283,7 +1077,11 @@ const Navbar = () => {
 
             {/* THEME TOGGLE */}
 
-            <div className="flex-shrink-0">
+            <div
+              className="
+                flex-shrink-0
+              "
+            >
 
               <ThemeToggle />
 
@@ -1296,7 +1094,7 @@ const Navbar = () => {
               className="
                 relative
                 hidden
-                md:block
+                lg:block
               "
             >
 
@@ -1328,7 +1126,12 @@ const Navbar = () => {
                   "
                 />
 
-                <div className="text-left">
+                <div
+                  className="
+                    text-left
+                    max-w-[150px]
+                  "
+                >
 
                   <p
                     className="
@@ -1336,9 +1139,10 @@ const Navbar = () => {
                       text-slate-500
                       dark:text-slate-400
                       leading-none
+                      truncate
                     "
                   >
-                    Hello, sign in
+                    Hello, {userName}
                   </p>
 
                   <div
@@ -1375,109 +1179,230 @@ const Navbar = () => {
               </button>
 
 
+              {/* ACCOUNT DROPDOWN */}
+
               <AnimatePresence>
 
-                {accountOpen && (
+                {
+                  accountOpen && (
 
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: -5,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      y: -5,
-                    }}
-                    className="
-                      absolute
-                      top-full
-                      right-0
-                      mt-2
-                      w-52
-                      bg-white
-                      dark:bg-slate-900
-                      rounded-xl
-                      border
-                      border-slate-200
-                      dark:border-slate-700
-                      shadow-xl
-                      dark:shadow-black/40
-                      p-2
-                      z-[60]
-                    "
-                  >
-
-                    <Link
-                      to="/profile"
-                      onClick={() =>
-                        setAccountOpen(
-                          false
-                        )
-                      }
+                    <motion.div
+                      initial={{
+                        opacity: 0,
+                        y: -5,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        y: -5,
+                      }}
                       className="
-                        block
-                        px-3
-                        py-3
-                        rounded-lg
-                        text-sm
-                        font-medium
-                        text-slate-800
-                        dark:text-slate-100
-                        hover:bg-slate-100
-                        dark:hover:bg-slate-800
-                        transition-colors
+                        absolute
+                        top-full
+                        right-0
+                        mt-2
+                        w-60
+                        bg-white
+                        dark:bg-slate-900
+                        rounded-xl
+                        border
+                        border-slate-200
+                        dark:border-slate-700
+                        shadow-xl
+                        dark:shadow-black/40
+                        p-2
+                        z-[60]
                       "
                     >
-                      👤 My Profile
-                    </Link>
+
+                      {/* USER INFO */}
+
+                      <div
+                        className="
+                          px-3
+                          py-3
+                          border-b
+                          border-slate-200
+                          dark:border-slate-700
+                          mb-2
+                        "
+                      >
+
+                        <p
+                          className="
+                            text-sm
+                            font-semibold
+                            text-slate-900
+                            dark:text-slate-100
+                            truncate
+                          "
+                        >
+                          {userName}
+                        </p>
+
+                        <p
+                          className="
+                            text-xs
+                            text-slate-500
+                            dark:text-slate-400
+                            truncate
+                            mt-1
+                          "
+                        >
+                          {userEmail}
+                        </p>
+
+                      </div>
 
 
-                    <button
-                      type="button"
-                      className="
-                        w-full
-                        text-left
-                        px-3
-                        py-3
-                        rounded-lg
-                        text-sm
-                        text-slate-700
-                        dark:text-slate-200
-                        hover:bg-slate-100
-                        dark:hover:bg-slate-800
-                        transition-colors
-                      "
-                    >
-                      ❤️ Wishlist
-                    </button>
+                      {/* PROFILE */}
+
+                      <Link
+                        to="/profile"
+                        onClick={() =>
+                          setAccountOpen(
+                            false
+                          )
+                        }
+                        className="
+                          block
+                          px-3
+                          py-3
+                          rounded-lg
+                          text-sm
+                          font-medium
+                          text-slate-800
+                          dark:text-slate-100
+                          hover:bg-slate-100
+                          dark:hover:bg-slate-800
+                          transition-colors
+                        "
+                      >
+                        👤 My Profile
+                      </Link>
 
 
-                    <button
-                      type="button"
-                      className="
-                        w-full
-                        text-left
-                        px-3
-                        py-3
-                        rounded-lg
-                        text-sm
-                        text-slate-700
-                        dark:text-slate-200
-                        hover:bg-slate-100
-                        dark:hover:bg-slate-800
-                        transition-colors
-                      "
-                    >
-                      📦 My Orders
-                    </button>
+                      {/* WISHLIST */}
 
-                  </motion.div>
+                      <button
+                        type="button"
+                        className="
+                          w-full
+                          text-left
+                          px-3
+                          py-3
+                          rounded-lg
+                          text-sm
+                          text-slate-700
+                          dark:text-slate-200
+                          hover:bg-slate-100
+                          dark:hover:bg-slate-800
+                          transition-colors
+                        "
+                      >
+                        ❤️ Wishlist
+                      </button>
 
-                )}
+
+                      {/* ORDERS */}
+
+                      <button
+                        type="button"
+                        className="
+                          w-full
+                          text-left
+                          px-3
+                          py-3
+                          rounded-lg
+                          text-sm
+                          text-slate-700
+                          dark:text-slate-200
+                          hover:bg-slate-100
+                          dark:hover:bg-slate-800
+                          transition-colors
+                        "
+                      >
+                        📦 My Orders
+                      </button>
+
+
+                      {/* SIGN OUT */}
+
+                      <div
+                        className="
+                          mt-2
+                          pt-2
+                          border-t
+                          border-slate-200
+                          dark:border-slate-700
+                        "
+                      >
+
+                        <button
+                          type="button"
+                          onClick={
+                            handleSignOut
+                          }
+                          disabled={
+                            isSigningOut
+                          }
+                          className="
+                            w-full
+                            flex
+                            items-center
+                            gap-2
+                            text-left
+                            px-3
+                            py-3
+                            rounded-lg
+                            text-sm
+                            font-semibold
+                            text-red-600
+                            dark:text-red-400
+                            hover:bg-red-50
+                            dark:hover:bg-red-500/10
+                            disabled:opacity-50
+                            disabled:cursor-not-allowed
+                            transition-colors
+                          "
+                        >
+
+                          {
+                            isSigningOut
+
+                              ? (
+                                <Loader2
+                                  size={17}
+                                  className="
+                                    animate-spin
+                                  "
+                                />
+                              )
+
+                              : (
+                                <LogOut
+                                  size={17}
+                                />
+                              )
+                          }
+
+                          {
+                            isSigningOut
+                              ? "Signing out..."
+                              : "Sign Out"
+                          }
+
+                        </button>
+
+                      </div>
+
+                    </motion.div>
+
+                  )
+                }
 
               </AnimatePresence>
 
@@ -1493,7 +1418,8 @@ const Navbar = () => {
                 flex
                 items-center
                 gap-2
-                px-3
+                px-2
+                lg:px-3
                 py-2
                 rounded-lg
                 hover:bg-slate-100
@@ -1514,8 +1440,8 @@ const Navbar = () => {
               <span
                 className="
                   hidden
-                  lg:block
-                  font-medium
+                  xl:block
+                  font-semibold
                   text-slate-900
                   dark:text-slate-100
                 "
@@ -1524,93 +1450,113 @@ const Navbar = () => {
               </span>
 
 
-              {cartCount > 0 && (
+              {
+                cartCount > 0 && (
 
-                <span
-                  className="
-                    absolute
-                    -top-1
-                    -right-1
-                    min-w-[20px]
-                    h-[20px]
-                    px-1
-                    rounded-full
-                    bg-red-500
-                    text-white
-                    text-[11px]
-                    font-bold
-                    flex
-                    items-center
-                    justify-center
-                    border-2
-                    border-white
-                    dark:border-slate-950
-                  "
-                >
-                  {cartCount}
-                </span>
+                  <span
+                    className="
+                      absolute
+                      -top-1
+                      -right-1
+                      min-w-[20px]
+                      h-[20px]
+                      px-1
+                      rounded-full
+                      bg-red-500
+                      text-white
+                      text-[11px]
+                      font-bold
+                      flex
+                      items-center
+                      justify-center
+                      border-2
+                      border-white
+                      dark:border-slate-950
+                    "
+                  >
+                    {cartCount}
+                  </span>
 
-              )}
+                )
+              }
 
             </Link>
 
           </div>
 
 
-          {/* =====================================================
-              CATEGORY NAVIGATION
-          ====================================================== */}
+          {/* CATEGORY NAVIGATION */}
 
           <div
             className="
-              h-[52px]
+              h-[68px]
               flex
               items-center
-              gap-8
-              overflow-x-auto
+              justify-between
+              gap-2
               border-t
-              border-slate-100
+              border-slate-200
               dark:border-slate-800
+              overflow-x-auto
+              lg:overflow-visible
               scrollbar-hide
             "
           >
 
-            {categories.map(
-              (cat) => (
+            {
+              categories.map(
+                (cat) => (
 
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() =>
-                    handleCategoryClick(
+                  <button
+                    key={
                       cat.id
-                    )
-                  }
-                  className="
-                    flex-shrink-0
-                    flex
-                    items-center
-                    gap-2
-                    text-sm
-                    font-medium
-                    text-slate-700
-                    dark:text-slate-300
-                    hover:text-blue-600
-                    dark:hover:text-blue-400
-                    transition-colors
-                  "
-                >
+                    }
+                    type="button"
+                    onClick={() =>
+                      handleCategoryClick(
+                        cat.id
+                      )
+                    }
+                    className="
+                      flex-1
+                      min-w-max
+                      lg:min-w-0
+                      flex
+                      items-center
+                      justify-center
+                      gap-3
+                      h-full
+                      px-3
+                      text-sm
+                      lg:text-base
+                      font-semibold
+                      text-slate-700
+                      dark:text-slate-300
+                      hover:text-blue-600
+                      dark:hover:text-blue-400
+                      transition-colors
+                      whitespace-nowrap
+                    "
+                  >
 
-                  <span className="text-lg">
-                    {cat.icon}
-                  </span>
+                    <span
+                      className="
+                        text-xl
+                        lg:text-2xl
+                      "
+                    >
+                      {cat.icon}
+                    </span>
 
-                  {cat.name}
+                    <span>
+                      {cat.name}
+                    </span>
 
-                </button>
+                  </button>
 
+                )
               )
-            )}
+            }
 
           </div>
 
@@ -1622,7 +1568,9 @@ const Navbar = () => {
       {/* LOCATION MODAL */}
 
       <LocationModal
-        open={locationOpen}
+        open={
+          locationOpen
+        }
         onClose={() =>
           setLocationOpen(
             false
