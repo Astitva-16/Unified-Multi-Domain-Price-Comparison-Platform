@@ -20,7 +20,7 @@ const LandingPage = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSearch();
     }
@@ -114,7 +114,7 @@ const LandingPage = () => {
                 placeholder="Search for products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 className="flex-1 px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <Button size="lg" onClick={handleSearch} className="gradient-primary text-primary-foreground border-0 px-6">
@@ -211,7 +211,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold text-lg mb-4 gradient-text">MOL BHAOO</h3>
+              <h3 className="font-bold text-lg mb-4 gradient-text">MOL BHAO</h3>
               <p className="text-sm text-muted-foreground">Find the best deals across all domains.</p>
             </div>
             <div>

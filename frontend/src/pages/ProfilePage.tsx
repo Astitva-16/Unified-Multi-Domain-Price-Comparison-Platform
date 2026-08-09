@@ -12,8 +12,8 @@ const ProfilePage = () => {
           <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center mx-auto mb-4">
             <User size={40} className="text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">John Doe</h1>
-          <p className="text-muted-foreground text-sm">john@example.com</p>
+          <h1 className="text-2xl font-bold">Astitva</h1>
+          <p className="text-muted-foreground text-sm">astitva@example.com</p>
         </div>
 
         {/* Stats */}
